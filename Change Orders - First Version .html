@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kane Remodeling — CO Control Tower</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans',sans-serif;background:#f5f4f0;color:#1a1916;font-size:13px}
+#loading{position:fixed;inset:0;background:#f5f4f0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:9999}
+#loading h2{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:700}
+#loading p{font-size:11px;color:#888;font-family:'IBM Plex Mono',monospace}
+.prog{width:240px;height:3px;background:#e0ddd6;overflow:hidden}
+.prog-fill{height:100%;background:#e8b840;animation:sl 1.6s ease-in-out infinite}
+@keyframes sl{0%{transform:translateX(-100%)}100%{transform:translateX(340px)}}
+#error-screen{display:none;position:fixed;inset:0;background:#fdf0f0;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:9999}
+.header{background:#1a1916;border-bottom:3px solid #e8b840;padding:15px 28px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+.header h1{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:#fff;letter-spacing:.05em}
+.header-sub{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#aaa;margin-top:3px}
+.hbtns{display:flex;gap:8px}
+.btn{padding:6px 13px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;letter-spacing:.04em;border:none}
+.btn-r{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.2)!important}
+.btn-r:hover{background:rgba(255,255,255,.22)}
+.btn-p{background:#e8b840;color:#1a1916;font-weight:700}
+.btn-p:hover{background:#f5cb55}
+.nav{background:#fff;border-bottom:1px solid #e0ddd6;padding:0 28px;display:flex;overflow-x:auto;position:sticky;top:61px;z-index:99}
+.nav-tab{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:10px 13px;border:none;background:none;color:#999;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;letter-spacing:.03em}
+.nav-tab.active{color:#1a1916;border-bottom-color:#1a1916;font-weight:600}
+.nav-tab:hover{color:#555}
+.content{padding:22px 28px;max-width:1600px}
+.section{display:none}.section.active{display:block}
+.sec-title{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.04em;padding-bottom:9px;border-bottom:1px solid #e0ddd6;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.sec-sub{font-size:10px;color:#999;font-weight:400}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px;margin-bottom:16px}
+.card{background:#fff;border:1px solid #e0ddd6;padding:12px 14px}
+.card.g{border-left:4px solid #1a5a30}.card.a{border-left:4px solid #7a5000}.card.r{border-left:4px solid #8a1a1a}.card.b{border-left:4px solid #1a306b}.card.n{border-left:4px solid #888}
+.card-lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.card-val{font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:700;line-height:1}
+.card.g .card-val{color:#1a5a30}.card.a .card-val{color:#7a5000}.card.r .card-val{color:#8a1a1a}.card.b .card-val{color:#1a306b}
+.card-sub{font-size:11px;color:#888;margin-top:4px}
+.alert{border-left:4px solid;padding:10px 14px;margin-bottom:11px}
+.alert.a{background:#fffbea;border-color:#7a5000}.alert.r{background:#fdf0f0;border-color:#8a1a1a}
+.alert-title{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:11px;margin-bottom:4px}
+.alert.a .alert-title{color:#7a5000}.alert.r .alert-title{color:#8a1a1a}
+.alert-body{font-size:12px;color:#555}
+.badge{display:inline-block;padding:2px 7px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.03em;white-space:nowrap;border-radius:2px;border:1px solid}
+.badge.pending{background:#fffbea;color:#7a5000;border-color:#f0d080}
+.badge.approved{background:#eef7f2;color:#1a5a30;border-color:#b0d8be}
+.badge.denied{background:#fdf0f0;color:#8a1a1a;border-color:#e8b0b0}
+.badge.High{background:#fdf0f0;color:#8a1a1a;border-color:#e8b0b0}
+.badge.Medium{background:#fffbea;color:#7a5000;border-color:#f0d080}
+.badge.Low{background:#eef7f2;color:#1a5a30;border-color:#b0d8be}
+.tbl-wrap{overflow-x:auto;margin-bottom:16px}
+table{width:100%;border-collapse:collapse}
+thead th{background:#1a1916;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.04em;padding:8px 9px;text-align:left;white-space:nowrap;border-right:1px solid rgba(255,255,255,.08)}
+tbody tr{border-bottom:1px solid #eee;background:#fff}
+tbody tr:nth-child(even){background:#fafaf8}
+tbody tr:hover{background:#eff4fd}
+td{padding:7px 9px;font-size:12px;vertical-align:top}
+td.mono{font-family:'IBM Plex Mono',monospace;font-size:11px}
+td a{color:#1a306b;text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:10px}
+td a:hover{text-decoration:underline}
+.filters{background:#fff;border:1px solid #e0ddd6;padding:10px 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:11px}
+.filter-lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#999;text-transform:uppercase}
+.filters select,.filters input{border:1px solid #ccc;padding:4px 7px;font-family:'IBM Plex Mono',monospace;font-size:11px;background:#f5f4f0;outline:none}
+.btn-reset{border:1px solid #ccc;padding:4px 9px;font-family:'IBM Plex Mono',monospace;font-size:11px;background:none;cursor:pointer;color:#888}
+.pipeline{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:11px;margin-bottom:16px}
+.pipe-col{background:#fff;border:1px solid #e0ddd6}
+.pipe-hdr{padding:8px 13px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;border-bottom:1px solid #e0ddd6;display:flex;justify-content:space-between;align-items:center}
+.pipe-hdr.pending{background:#fffbea;color:#7a5000}.pipe-hdr.approved{background:#eef7f2;color:#1a5a30}.pipe-hdr.paid{background:#eef7f2;color:#1a5a30}.pipe-hdr.denied{background:#fdf0f0;color:#8a1a1a}
+.pipe-count{background:#1a1916;color:#fff;border-radius:20px;padding:0 7px;font-size:10px}
+.pipe-card{padding:9px 13px;border-bottom:1px solid #eee;font-size:12px}
+.pipe-title{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:11px;margin-bottom:2px}
+.pipe-meta{color:#888;font-size:11px}
+.pipe-amt{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:12px;margin-top:3px}
+.pipe-action{padding:8px 13px;background:#fafaf8;font-size:11px;color:#666;border-top:1px solid #eee;font-style:italic}
+.pipe-empty{padding:13px;font-size:12px;color:#aaa;font-style:italic}
+.risk-flag{display:flex;gap:11px;padding:10px 14px;border-left:4px solid;margin-bottom:8px}
+.risk-flag.High{background:#fdf0f0;border-color:#8a1a1a}.risk-flag.Medium{background:#fffbea;border-color:#7a5000}
+.risk-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+.risk-title{font-weight:700;font-size:12px;margin-bottom:2px}
+.risk-flag.High .risk-title{color:#8a1a1a}.risk-flag.Medium .risk-title{color:#7a5000}
+.risk-desc{font-size:12px;color:#444}
+.action-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:11px}
+.action-col{background:#fff;border:1px solid #e0ddd6}
+.action-hdr{padding:9px 14px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;border-bottom:1px solid #e0ddd6;background:#fafaf8;letter-spacing:.04em}
+.action-item{padding:9px 14px;border-bottom:1px solid #f0f0ee;font-size:12px;display:flex;gap:8px;align-items:flex-start}
+.action-item:last-child{border-bottom:none}
+.pri{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;margin-top:1px}
+.pri.p1{background:#8a1a1a}.pri.p2{background:#7a5000}.pri.p3{background:#1a5a30}
+@media print{.hbtns,.nav,.filters{display:none!important}.section{display:block!important;page-break-inside:avoid}body{background:#fff;font-size:10px}}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#bbb;letter-spacing:.1em">KANE REMODELING</div>
+  <h2>Loading Change Orders…</h2>
+  <div class="prog"><div class="prog-fill"></div></div>
+  <p id="load-msg">Connecting to JobTread…</p>
+</div>
+
+<div id="error-screen">
+  <div style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:#8a1a1a;font-size:13px">⚠ JOBTREAD FETCH FAILED</div>
+  <div id="err-msg" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#555;max-width:480px;text-align:center;line-height:1.6;margin-top:8px"></div>
+  <button onclick="boot(true)" style="margin-top:16px;padding:8px 20px;font-family:'IBM Plex Mono',monospace;font-size:12px;background:#1a1916;color:#fff;border:none;cursor:pointer">↻ Retry</button>
+</div>
+
+<div id="app" style="display:none">
+  <div class="header">
+    <div>
+      <h1>KANE REMODELING — CHANGE ORDER CONTROL TOWER</h1>
+      <div class="header-sub" id="hdr-sub"></div>
+    </div>
+    <div class="hbtns">
+      <button class="btn btn-r" onclick="boot(true)">↻ REFRESH</button>
+      <button class="btn btn-p" onclick="window.print()">⬇ PDF</button>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="nav-tab active" onclick="showTab('exec',this)">Executive Summary</button>
+    <button class="nav-tab" onclick="showTab('pipeline',this)">CO Pipeline</button>
+    <button class="nav-tab" onclick="showTab('jobs',this)">Job Summary</button>
+    <button class="nav-tab" onclick="showTab('detail',this)">Detailed Table</button>
+    <button class="nav-tab" onclick="showTab('risk',this)">Risk Flags</button>
+    <button class="nav-tab" onclick="showTab('payment',this)">Payment Summary</button>
+    <button class="nav-tab" onclick="showTab('action',this)">Action Plan</button>
+  </div>
+
+  <div class="content">
+    <div id="exec"     class="section active"></div>
+    <div id="pipeline" class="section"></div>
+    <div id="jobs"     class="section"></div>
+    <div id="detail"   class="section"></div>
+    <div id="risk"     class="section"></div>
+    <div id="payment"  class="section"></div>
+    <div id="action"   class="section"></div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ───────────────────────────────────────────────────────────────────
+const GRANT_KEY = "22TQHpGqCkdn5QTa6UbF4DnihWsUU4EzjZ";
+const ORG_ID    = "22NftqzPGNix";
+const CACHE_KEY = "kane_co_v2";
+const PAVE_URL  = "https://api.jobtread.com/pave";
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+const fmt  = n => n==null?'—':(n<0?'-$':'$')+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
+const dAgo = d => d ? Math.floor((Date.now()-new Date(d).getTime())/86400000) : null;
+const pct  = (p,c) => (!c||c===0||p<=0) ? null : (((p-c)/p)*100).toFixed(0)+'%';
+const todayStr = () => new Date().toISOString().slice(0,10);
+const TH   = cols => cols.map(c=>`<th>${c}</th>`).join('');
+const jLink= (id,txt) => `<a href="https://app.jobtread.com/jobs/${id}" target="_blank">${txt} ↗</a>`;
+const bdg  = s => `<span class="badge ${s}">${s.toUpperCase()}</span>`;
+const rbdg = r => `<span class="badge ${r}">${r.toUpperCase()}</span>`;
+const rf   = (lvl,title,desc) => `<div class="risk-flag ${lvl}"><div class="risk-icon">${lvl==='High'?'🔴':'🟡'}</div><div><div class="risk-title">${title}</div><div class="risk-desc">${desc}</div></div></div>`;
+const pr   = (p,t) => `<div class="action-item"><span class="pri p${p}">${p}</span><span style="color:#444">${t}</span></div>`;
+
+function riskOf(co){
+  if(co.status==='pending') return 'High';
+  if(co.status==='denied')  return 'Medium';
+  const d = dAgo(co.closedAt||co.issueDate);
+  if(co.amountPaid===0 && co.price>10000 && d>60) return 'High';
+  if(co.amountPaid===0 && co.price>5000)          return 'Medium';
+  if(!co.cost || co.cost===0)                     return 'Medium';
+  return 'Low';
+}
+
+function showTab(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function log(msg){ document.getElementById('load-msg').textContent=msg; }
+
+// ── JOBTREAD DIRECT FETCH ────────────────────────────────────────────────────
+async function pave(query){
+  const res = await fetch(PAVE_URL, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ query: {"$":{grantKey:GRANT_KEY}, ...query} })
+  });
+  if(!res.ok) throw new Error(`JobTread API error ${res.status}: ${res.statusText}`);
+  const json = await res.json();
+  if(json.errors) throw new Error(json.errors.map(e=>e.message).join(', '));
+  return json;
+}
+
+async function fetchFromJobTread(){
+  log('Fetching change orders…');
+  const [cosRes, jobsRes] = await Promise.all([
+    pave({
+      organization:{
+        "$":{id:ORG_ID},
+        documents:{
+          "$":{
+            size:100,
+            sortBy:[{field:"createdAt",order:"desc"}],
+            where:{and:[
+              ["type","customerOrder"],
+              ["name","Change Order"],
+              [["job","closedOn"],null]
+            ]}
+          },
+          count:{},
+          nodes:{
+            id:{},fullName:{},number:{},status:{},issueDate:{},
+            createdAt:{},closedAt:{},price:{},cost:{},
+            balance:{},amountPaid:{},description:{},signedAt:{},
+            includeInBudget:{},
+            job:{id:{},name:{},number:{}},
+            account:{id:{},name:{}}
+          }
+        }
+      }
+    }),
+    pave({
+      organization:{
+        "$":{id:ORG_ID},
+        jobs:{"$":{where:["closedOn",null]},count:{}}
+      }
+    })
+  ]);
+
+  log('Processing data…');
+  const nodes = cosRes.organization.documents.nodes;
+  const changeOrders = nodes.map(d=>({
+    id:d.id, fullName:d.fullName,
+    jobId:d.job.id, jobName:d.job.name, jobNumber:d.job.number,
+    client:d.account.name, status:d.status,
+    issueDate:d.issueDate, closedAt:d.closedAt,
+    price:d.price, cost:d.cost,
+    amountPaid:d.amountPaid, description:d.description,
+    signedAt:d.signedAt, includeInBudget:d.includeInBudget
+  }));
+
+  return {
+    fetchedAt:   new Date().toISOString(),
+    fetchedDate: todayStr(),
+    totalActiveJobs: jobsRes.organization.jobs.count,
+    changeOrders
+  };
+}
+
+// ── BOOT — auto-refresh daily via localStorage cache ─────────────────────────
+async function boot(force=false){
+  document.getElementById('app').style.display='none';
+  document.getElementById('error-screen').style.display='none';
+  document.getElementById('loading').style.display='flex';
+
+  try {
+    let data = null;
+
+    if(!force){
+      try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if(cached){
+          const parsed = JSON.parse(cached);
+          if(parsed.fetchedDate === todayStr()){
+            log('Data is current — loading…');
+            data = parsed;
+          }
+        }
+      } catch(e){ /* ignore bad cache */ }
+    }
+
+    if(!data){
+      data = await fetchFromJobTread();
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch(e){}
+    }
+
+    render(data);
+    document.getElementById('loading').style.display='none';
+    document.getElementById('app').style.display='block';
+
+  } catch(e){
+    document.getElementById('loading').style.display='none';
+    document.getElementById('err-msg').textContent = e.message;
+    document.getElementById('error-screen').style.display='flex';
+  }
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render(data){
+  const COS      = (data.changeOrders||[]).map(c=>({...c, _risk:riskOf(c), _days:dAgo(c.issueDate)}));
+  const pending  = COS.filter(c=>c.status==='pending');
+  const approved = COS.filter(c=>c.status==='approved');
+  const denied   = COS.filter(c=>c.status==='denied');
+  const noPayment= approved.filter(c=>c.amountPaid===0);
+  const highRisk = COS.filter(c=>c._risk==='High');
+  const totalVal    = COS.reduce((s,c)=>s+(c.price||0),0);
+  const approvedVal = approved.reduce((s,c)=>s+(c.price||0),0);
+  const pendingVal  = pending.reduce((s,c)=>s+(c.price||0),0);
+  const noPayVal    = noPayment.reduce((s,c)=>s+(c.price||0),0);
+  const deniedVal   = denied.reduce((s,c)=>s+(c.price||0),0);
+
+  // Job rollup
+  const jobMap={};
+  COS.forEach(co=>{
+    if(!jobMap[co.jobId]) jobMap[co.jobId]={jobId:co.jobId,jobName:co.jobName,jobNumber:co.jobNumber,client:co.client,cos:[]};
+    jobMap[co.jobId].cos.push(co);
+  });
+  const jobRows = Object.values(jobMap).sort((a,b)=>
+    b.cos.reduce((s,c)=>s+Math.abs(c.price||0),0) - a.cos.reduce((s,c)=>s+Math.abs(c.price||0),0)
+  );
+
+  // Header
+  const fetched = new Date(data.fetchedAt).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+  document.getElementById('hdr-sub').textContent =
+    `LIVE DATA · ${COS.length} CHANGE ORDERS · ${data.totalActiveJobs} ACTIVE JOBS · Updated ${fetched}`;
+
+  // ── EXEC ────────────────────────────────────────────────────────────────────
+  document.getElementById('exec').innerHTML=`
+<div class="sec-title">EXECUTIVE SUMMARY <span class="sec-sub">JobTread Live · ${new Date(data.fetchedAt).toLocaleDateString()}</span></div>
+<div class="cards">
+  <div class="card b"><div class="card-lbl">Active Jobs</div><div class="card-val">${data.totalActiveJobs}</div></div>
+  <div class="card n"><div class="card-lbl">Total COs</div><div class="card-val">${COS.length}</div></div>
+  <div class="card a"><div class="card-lbl">Pending / Open</div><div class="card-val">${pending.length}</div><div class="card-sub">${fmt(pendingVal)}</div></div>
+  <div class="card g"><div class="card-lbl">Approved</div><div class="card-val">${approved.length}</div><div class="card-sub">${fmt(approvedVal)}</div></div>
+  <div class="card r"><div class="card-lbl">Denied</div><div class="card-val">${denied.length}</div></div>
+  <div class="card r"><div class="card-lbl">High Risk</div><div class="card-val">${highRisk.length}</div></div>
+  <div class="card a"><div class="card-lbl">Approved Unpaid</div><div class="card-val">${noPayment.length}</div><div class="card-sub">${fmt(noPayVal)}</div></div>
+  <div class="card n"><div class="card-lbl">Total CO Value</div><div class="card-val" style="font-size:15px">${fmt(totalVal)}</div></div>
+</div>
+${pending.length>0?`<div class="alert a"><div class="alert-title">⚠ ${pending.length} PENDING CO${pending.length>1?'S':''} — REQUIRE ACTION</div>
+<div class="alert-body">${pending.map(co=>`<div style="margin-top:3px"><strong>${co.fullName}</strong> — ${co.jobName} / ${co.client} — ${fmt(co.price)} — ${co._days} days old${!co.description?' <span style="color:#8a1a1a;font-size:11px">⚠ No description</span>':''}</div>`).join('')}</div></div>`:''}
+${noPayVal>50000?`<div class="alert r"><div class="alert-title">🔴 ${fmt(noPayVal)} IN APPROVED COs WITH $0 PAYMENT IN JOBTREAD</div>
+<div class="alert-body">Admin must reconcile ${noPayment.length} approved COs against QBO/bank. Invoice any outstanding balances immediately.</div></div>`:''}
+<div class="sec-title" style="margin-top:18px">HIGHEST CO EXPOSURE BY JOB</div>
+<div class="tbl-wrap"><table>
+<thead><tr>${TH(['Job','Client','COs','Pending','Approved','Total CO Value','Unpaid','Risk'])}</tr></thead>
+<tbody>${jobRows.slice(0,9).map(j=>{
+  const jT=j.cos.reduce((s,c)=>s+(c.price||0),0);
+  const jU=j.cos.filter(c=>c.status==='approved'&&c.amountPaid===0).reduce((s,c)=>s+(c.price||0),0);
+  const jP=j.cos.filter(c=>c.status==='pending').length;
+  const jA=j.cos.filter(c=>c.status==='approved').length;
+  const hH=j.cos.some(c=>c._risk==='High');
+  return`<tr style="${hH?'background:#fffbf0':''}">
+    <td>${jLink(j.jobId,j.jobName)}<div style="font-size:10px;color:#999">#${j.jobNumber}</div></td>
+    <td>${j.client}</td><td class="mono">${j.cos.length}</td>
+    <td class="mono" style="color:${jP>0?'#7a5000':'#999'}">${jP}</td>
+    <td class="mono">${jA}</td>
+    <td class="mono">${fmt(jT)}</td>
+    <td class="mono" style="color:${jU>0?'#8a1a1a':'#1a5a30'}">${fmt(jU)}</td>
+    <td>${rbdg(hH?'High':'Medium')}</td></tr>`;}).join('')}
+</tbody></table></div>`;
+
+  // ── PIPELINE ────────────────────────────────────────────────────────────────
+  const pStages=[
+    {key:'pending', label:'A. PENDING / OPEN', items:pending, action:'Add scope, attach files, send to client for approval.'},
+    {key:'approved',label:'D. APPROVED',       items:approved,action:'Verify payment per job terms. Notify vendors only after payment confirmed.'},
+    {key:'paid',    label:'E. PAID',            items:[],      action:'No paid COs recorded in JobTread. Reconcile against QBO.'},
+    {key:'denied',  label:'F. DENIED',          items:denied,  action:'Document denial reason. Remove any pending vendor work.'},
+  ];
+  document.getElementById('pipeline').innerHTML=`
+<div class="sec-title">CHANGE ORDER STATUS PIPELINE</div>
+<div class="pipeline">${pStages.map(s=>`<div class="pipe-col">
+  <div class="pipe-hdr ${s.key}">${s.label} <span class="pipe-count">${s.items.length}</span></div>
+  ${s.items.length===0?`<div class="pipe-empty">No COs in this stage.</div>`:
+    s.items.slice(0,6).map(co=>`<div class="pipe-card">
+      <div class="pipe-title">${co.fullName}</div>
+      <div class="pipe-meta">${co.jobName} · ${co.client}</div>
+      <div class="pipe-amt" style="color:${s.key==='denied'?'#8a1a1a':s.key==='pending'?'#7a5000':'#1a5a30'}">${fmt(co.price)}</div>
+      ${co._days>7?`<div style="font-size:10px;color:#8a1a1a;margin-top:2px">⚠ ${co._days} days old</div>`:''}
+      ${!co.description?`<div style="font-size:10px;color:#7a5000;margin-top:2px">⚠ No description</div>`:''}
+    </div>`).join('')}
+  ${s.items.length>6?`<div class="pipe-empty">+ ${s.items.length-6} more…</div>`:''}
+  <div class="pipe-action">${s.action}</div>
+</div>`).join('')}</div>`;
+
+  // ── JOBS ────────────────────────────────────────────────────────────────────
+  document.getElementById('jobs').innerHTML=`
+<div class="sec-title">JOB-LEVEL CHANGE ORDER SUMMARY</div>
+<div class="tbl-wrap"><table>
+<thead><tr>${TH(['Job #','Job Name','Client','COs','Pending','Approved','Denied','Total CO Value','Unpaid','Highest CO','Risk','Link'])}</tr></thead>
+<tbody>${jobRows.map((j,i)=>{
+  const jT=j.cos.reduce((s,c)=>s+(c.price||0),0);
+  const jU=j.cos.filter(c=>c.status==='approved'&&c.amountPaid===0).reduce((s,c)=>s+(c.price||0),0);
+  const top=[...j.cos].sort((a,b)=>Math.abs(b.price||0)-Math.abs(a.price||0))[0];
+  const hH=j.cos.some(c=>c._risk==='High');
+  return`<tr>
+    <td class="mono">${j.jobNumber}</td><td>${j.jobName}</td><td>${j.client}</td>
+    <td class="mono">${j.cos.length}</td>
+    <td class="mono" style="color:${j.cos.filter(c=>c.status==='pending').length>0?'#7a5000':'#999'}">${j.cos.filter(c=>c.status==='pending').length}</td>
+    <td class="mono">${j.cos.filter(c=>c.status==='approved').length}</td>
+    <td class="mono" style="color:${j.cos.filter(c=>c.status==='denied').length>0?'#8a1a1a':'#999'}">${j.cos.filter(c=>c.status==='denied').length}</td>
+    <td class="mono">${fmt(jT)}</td>
+    <td class="mono" style="color:${jU>0?'#8a1a1a':'#1a5a30'}">${fmt(jU)}</td>
+    <td style="font-size:11px">${top?top.fullName+' '+fmt(top.price):''}</td>
+    <td>${rbdg(hH?'High':'Medium')}</td>
+    <td>${jLink(j.jobId,'Open')}</td></tr>`;}).join('')}
+</tbody></table></div>`;
+
+  // ── DETAIL ──────────────────────────────────────────────────────────────────
+  function renderDetailTable(){
+    const sv=(document.getElementById('f-status')||{}).value||'';
+    const rv=(document.getElementById('f-risk')||{}).value||'';
+    const qv=((document.getElementById('f-search')||{}).value||'').toLowerCase();
+    const filtered=COS.filter(co=>{
+      if(sv&&co.status!==sv)return false;
+      if(rv&&co._risk!==rv)return false;
+      if(qv&&!`${co.fullName} ${co.jobName} ${co.client}`.toLowerCase().includes(qv))return false;
+      return true;
+    });
+    const dc=document.getElementById('detail-count');
+    if(dc)dc.textContent=`${filtered.length} of ${COS.length} COs`;
+    const tb=document.getElementById('co-tbody');
+    if(!tb)return;
+    tb.innerHTML=filtered.map((co,i)=>{
+      const m=pct(co.price,co.cost), d=co._days;
+      return`<tr>
+        <td class="mono" style="white-space:nowrap">${co.fullName}</td>
+        <td>${co.jobName}</td><td>${co.client}</td>
+        <td>${bdg(co.status)}</td>
+        <td class="mono">${co.issueDate||'—'}</td>
+        <td class="mono" style="color:${d>60?'#8a1a1a':d>14?'#7a5000':'#333'}">${d!=null?d+'d':'—'}</td>
+        <td class="mono" style="color:${co.price<0?'#8a1a1a':'#1a1916'};font-weight:700">${fmt(co.price)}</td>
+        <td class="mono">${co.cost>0?fmt(co.cost):'—'}</td>
+        <td class="mono" style="color:${!m?'#999':parseInt(m)<20?'#8a1a1a':'#1a5a30'}">${m||'—'}</td>
+        <td style="font-size:11px;color:#666;max-width:160px">${co.description?co.description.slice(0,55)+(co.description.length>55?'…':''):'<span style="color:#bbb">None</span>'}</td>
+        <td class="mono" style="color:${co.signedAt?'#1a5a30':'#8a1a1a'}">${co.signedAt?'Yes':'No'}</td>
+        <td class="mono" style="color:${co.amountPaid>0?'#1a5a30':'#8a1a1a'}">${co.amountPaid>0?fmt(co.amountPaid):'$0'}</td>
+        <td>${rbdg(co._risk)}</td>
+        <td style="font-size:11px;color:#555">${co.status==='pending'?'⚠ Add scope & send':co.amountPaid===0&&co.price>0?'Verify payment':'Monitor'}</td>
+        <td>${jLink(co.jobId,'↗')}</td></tr>`;}).join('');
+  }
+  window.renderDetailTable=renderDetailTable;
+
+  document.getElementById('detail').innerHTML=`
+<div class="sec-title">DETAILED CHANGE ORDER TABLE <span class="sec-sub" id="detail-count">${COS.length} COs</span></div>
+<div class="filters">
+  <div style="display:flex;align-items:center;gap:6px"><span class="filter-lbl">Status</span>
+    <select id="f-status" onchange="renderDetailTable()"><option value="">All</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="denied">Denied</option></select></div>
+  <div style="display:flex;align-items:center;gap:6px"><span class="filter-lbl">Risk</span>
+    <select id="f-risk" onchange="renderDetailTable()"><option value="">All</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option></select></div>
+  <div style="display:flex;align-items:center;gap:6px"><span class="filter-lbl">Search</span>
+    <input id="f-search" type="text" placeholder="CO #, job, client…" oninput="renderDetailTable()" style="width:175px"></div>
+  <button class="btn-reset" onclick="document.getElementById('f-status').value='';document.getElementById('f-risk').value='';document.getElementById('f-search').value='';renderDetailTable()">Reset</button>
+</div>
+<div class="tbl-wrap"><table>
+<thead><tr>${TH(['CO','Job','Client','Status','Issued','Days','Amount','Cost','Margin','Description','Signed','Paid','Risk','Action','Link'])}</tr></thead>
+<tbody id="co-tbody"></tbody></table></div>`;
+  renderDetailTable();
+
+  // ── RISK ────────────────────────────────────────────────────────────────────
+  let rHTML=`<div class="sec-title">RISK FLAGS <span class="sec-sub">Auto-generated · ${new Date(data.fetchedAt).toLocaleDateString()}</span></div>`;
+  pending.forEach(co=>rHTML+=rf('High',`${co.fullName} — PENDING ${co._days}d (${fmt(co.price)})`,
+    `Job: ${co.jobName} / ${co.client}. Issued ${co.issueDate}.${!co.description?' No scope description.':''} Not signed by client. Send to client today.`));
+  if(noPayVal>0) rHTML+=rf('High',`${fmt(noPayVal)} in Approved COs — $0 Payments in JobTread`,
+    `${noPayment.length} approved COs show amountPaid=$0. Admin: cross-reference against QBO/bank. Log received payments or invoice outstanding balances immediately.`);
+  if(COS.length>0&&COS.every(c=>!c.signedAt)) rHTML+=rf('High','No Digital Signatures on Any Change Order',
+    'signedAt is null on every CO. No legal record of client authorization exists in JobTread. Establish a consistent signature policy immediately.');
+  COS.filter(c=>c.status==='approved'&&(!c.cost||c.cost===0)&&c.price>1000).forEach(co=>
+    rHTML+=rf('Medium',`${co.fullName} — $0 Cost Entered (${fmt(co.price)} approved)`,
+      'No cost documented. Margin analysis impossible. Estimator: enter actual cost in JobTread.'));
+  denied.forEach(co=>rHTML+=rf('Medium',`${co.fullName} — DENIED CO on Active Job`,
+    `Confirm denial documented, no vendor costs incurred, budget excludes this CO (includeInBudget: ${co.includeInBudget}).`));
+  approved.filter(c=>dAgo(c.closedAt)>90).slice(0,5).forEach(co=>
+    rHTML+=rf('Medium',`${co.fullName} — Approved ${dAgo(co.closedAt)}d ago, $0 Payment`,
+      `Job: ${co.jobName}. Value: ${fmt(co.price)}. Old approval with no payment logged. Reconcile immediately.`));
+  document.getElementById('risk').innerHTML=rHTML;
+
+  // ── PAYMENT ─────────────────────────────────────────────────────────────────
+  document.getElementById('payment').innerHTML=`
+<div class="sec-title">PAYMENT & INVOICE SUMMARY</div>
+<div class="cards">
+  <div class="card r"><div class="card-lbl">Approved Unpaid</div><div class="card-val">${noPayment.length}</div><div class="card-sub">${fmt(noPayVal)}</div></div>
+  <div class="card a"><div class="card-lbl">Pending Value</div><div class="card-val" style="font-size:15px">${fmt(pendingVal)}</div><div class="card-sub">${pending.length} COs</div></div>
+  <div class="card r"><div class="card-lbl">Denied Value</div><div class="card-val" style="font-size:15px">${fmt(deniedVal)}</div><div class="card-sub">Not recoverable</div></div>
+  <div class="card g"><div class="card-lbl">Paid (recorded)</div><div class="card-val">0</div><div class="card-sub">$0 in system</div></div>
+</div>
+<div class="sec-title">APPROVED UNPAID — PRIORITY AR LIST</div>
+<div class="tbl-wrap"><table>
+<thead><tr>${TH(['#','CO','Job','Client','Approved On','Days Since','Amount','Balance','Action'])}</tr></thead>
+<tbody>${noPayment.sort((a,b)=>Math.abs(b.price||0)-Math.abs(a.price||0)).map((co,i)=>{
+  const d=dAgo(co.closedAt);
+  return`<tr style="${d>90?'background:#fffbea':''}">
+    <td class="mono" style="color:#888">${i+1}</td>
+    <td class="mono">${co.fullName}</td><td>${co.jobName}</td><td>${co.client}</td>
+    <td class="mono">${co.closedAt||'—'}</td>
+    <td class="mono" style="color:${d>60?'#8a1a1a':'#333'}">${d!=null?d+'d':'—'}</td>
+    <td class="mono" style="font-weight:700">${fmt(co.price)}</td>
+    <td class="mono" style="color:#8a1a1a">$0 recorded</td>
+    <td style="font-size:11px">${d>90?'🔴 Urgent — reconcile now':d>30?'🟡 Send invoice or verify':'Confirm + log in JobTread'}</td></tr>`;}).join('')}
+</tbody></table></div>
+<div class="alert r" style="margin-top:13px">
+  <div class="alert-title">⚠ AR ALERT — ${fmt(noPayVal)} WITH NO PAYMENTS IN JOBTREAD</div>
+  <div class="alert-body">Does not necessarily mean ${fmt(noPayVal)} is uncollected — it is not recorded in JobTread. Payments may exist in QBO only. Admin: cross-reference all ${noPayment.length} approved COs against QBO/bank this week. Invoice any outstanding balances immediately.</div>
+</div>`;
+
+  // ── ACTION ──────────────────────────────────────────────────────────────────
+  document.getElementById('action').innerHTML=`
+<div class="sec-title">WEEKLY ACTION PLAN — ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+<div class="action-grid">
+  <div class="action-col"><div class="action-hdr">👤 OWNER / DAN</div>
+    ${pr(1,pending.length>0?`Review ${pending.map(c=>c.fullName).join(', ')} — ${pending.length} pending CO${pending.length>1?'s':''} awaiting action.`:'No pending COs — all resolved or approved.')}
+    ${pr(1,'Signature policy: Zero COs have digital signatures. Decide on a standard and enforce it.')}
+    ${pr(2,`AR review: ${fmt(noPayVal)} in approved COs shows $0 in JobTread. Confirm with admin.`)}
+    ${pr(3,'Review denied CO 411-27 — ensure budget excludes it.')}
+  </div>
+  <div class="action-col"><div class="action-hdr">🔧 PM / OPERATIONS</div>
+    ${pending.map(co=>pr(1,`${co.fullName} (Job ${co.jobNumber}): Write scope, attach photos, send to client TODAY. ${co._days} days old.`)).join('')}
+    ${pr(2,'Job 546 (Donaldson): 4 approved COs — verify all scope is complete or scheduled.')}
+    ${pr(2,'Mountainclimb Dr.: 6 approved COs — confirm remaining scope is on schedule.')}
+    ${pr(3,'Document vendor dependencies in CO comments for all COs with cost > $0.')}
+  </div>
+  <div class="action-col"><div class="action-hdr">📐 ESTIMATOR</div>
+    ${pending.map(co=>pr(1,`${co.fullName}: Verify price (${fmt(co.price)}) and cost (${fmt(co.cost)}) before client send.`)).join('')}
+    ${pr(2,`Enter cost for ${COS.filter(c=>c.status==='approved'&&(!c.cost||c.cost===0)&&c.price>0).length} approved COs showing $0 cost.`)}
+    ${pr(3,'Review COs where cost ≈ price (zero margin) — confirm intentional or fix.')}
+  </div>
+  <div class="action-col"><div class="action-hdr">📋 ADMIN / EA</div>
+    ${pr(1,`URGENT: Reconcile ${fmt(noPayVal)} in ${noPayment.length} approved COs against QBO. Report to Dan by end of week.`)}
+    ${pr(1,'Log all verified payments in JobTread to close out balances.')}
+    ${pending.map(co=>pr(2,`Draft client email for ${co.fullName} once PM adds scope.`)).join('')}
+    ${pr(2,'Send invoices: CO 514-14 ($41,826), CO 544-4 ($25,000), CO 411-28 ($24,499).')}
+    ${pr(3,'Create JobTread tasks for COs needing PM action within 48 hours.')}
+  </div>
+</div>`;
+}
+
+// ── START ─────────────────────────────────────────────────────────────────────
+boot();
+</script>
+</body>
+</html>

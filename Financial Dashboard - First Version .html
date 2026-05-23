@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">Weekly Job Health Dashboard — Loading…</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ── DESIGN TOKENS ─────────────────────────────────────── */
+:root {
+  --ink:#0e1117; --paper:#f4f6f9; --white:#fff; --surface:#eef0f4;
+  --rule:#dde0e6; --muted:#7a7e8a;
+  --on:#1a6b3a; --on-bg:#e3f4ea; --on-bd:#a3d4b4;
+  --att:#9a5a00; --att-bg:#fff4e0; --att-bd:#f0c070;
+  --risk:#a01c1c; --risk-bg:#fdeaea; --risk-bd:#f0a0a0;
+  --blue:#1a4a8a; --blue-bg:#e8f0fb;
+  --hdr:#1a2535; --acc:#2e8b6e;
+  --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:13px;line-height:1.5;}
+
+/* ── TOP BAR ─────────────────────────────────────────── */
+.topbar{background:var(--hdr);color:#fff;padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:50px;position:sticky;top:0;z-index:100;}
+.tb-brand{display:flex;align-items:center;gap:10px;}
+.tb-logo{width:30px;height:30px;background:var(--acc);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Libre Baskerville',serif;font-style:italic;font-size:14px;color:#fff;flex-shrink:0;}
+.tb-name{font-size:14px;font-weight:600;}
+.tb-sub{font-size:10px;color:#8a9ab0;font-family:var(--mono);}
+.tb-right{display:flex;align-items:center;gap:12px;}
+.tb-date{font-family:var(--mono);font-size:10px;color:#8a9ab0;}
+.tb-status{font-family:var(--mono);font-size:9px;padding:3px 9px;border-radius:20px;background:#1e3a28;color:#4ade80;}
+.print-btn{background:var(--acc);color:#fff;border:none;padding:6px 14px;border-radius:4px;font-family:var(--mono);font-size:10px;cursor:pointer;}
+.print-btn:hover{background:#257a5e;}
+
+/* ── FILTER BAR ──────────────────────────────────────── */
+.filterbar{background:var(--white);border-bottom:1px solid var(--rule);padding:8px 28px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.fl-label{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+.filterbar select{font-family:var(--sans);font-size:12px;padding:4px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--white);color:var(--ink);cursor:pointer;}
+.fl-clear{font-family:var(--mono);font-size:10px;color:var(--muted);cursor:pointer;text-decoration:underline;margin-left:auto;}
+.fl-clear:hover{color:var(--risk);}
+
+/* ── LAYOUT ──────────────────────────────────────────── */
+.page{padding:20px 28px 48px;max-width:1400px;margin:0 auto;}
+.sec-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.sec-lbl::after{content:'';flex:1;height:1px;background:var(--rule);}
+.card{background:var(--white);border:1px solid var(--rule);border-radius:6px;overflow:hidden;}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:9px 14px 7px;border-bottom:1px solid var(--rule);}
+.card-head h3{font-size:12px;font-weight:600;}
+.badge{font-family:var(--mono);font-size:8px;background:var(--surface);color:var(--muted);padding:2px 6px;border-radius:20px;}
+
+/* ── KPI ROW ─────────────────────────────────────────── */
+.kpi-row{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:16px;}
+.kpi{background:var(--white);border:1px solid var(--rule);border-radius:6px;padding:10px 12px;}
+.kpi-lbl{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+.kpi-val{font-size:17px;font-weight:600;line-height:1;}
+.kpi-sub{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px;}
+.kpi.k-acc{border-left:3px solid var(--acc);}
+.kpi.k-on {border-left:3px solid var(--on);}
+.kpi.k-att{border-left:3px solid var(--att);}
+.kpi.k-risk{border-left:3px solid var(--risk);}
+
+/* ── DASH OUTER ──────────────────────────────────────── */
+/* Left ~72%  Right ~28% checklist */
+.dash-outer{display:grid;grid-template-columns:minmax(0,2.6fr) minmax(260px,0.7fr);gap:14px;margin-bottom:20px;align-items:start;}
+.dash-left{min-width:0;}
+.dash-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+/* Row 1 charts: donut short, concern medium, AR bar medium */
+.chart-wrap{position:relative;height:148px;padding:3px 0;}
+/* Contract-by-job is horizontal bars — needs more height */
+.chart-wrap-tall{position:relative;height:185px;padding:3px 0;}
+
+/* ── MINI TABLES ─────────────────────────────────────── */
+.card-body{padding:12px 14px;}
+.mini-tbl{width:100%;border-collapse:collapse;}
+.mini-tbl td{padding:6px 0;border-bottom:1px solid var(--surface);font-size:12px;}
+.mini-tbl tr:last-child td{border-bottom:none;}
+.mini-tbl td:last-child{text-align:right;font-family:var(--mono);font-weight:500;}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;}
+.dot-on{background:#2e8b6e;}
+.dot-att{background:#e8a020;}
+.dot-risk{background:#c0392b;}
+.chip{display:inline-block;font-family:var(--mono);font-size:9px;padding:1px 7px;border-radius:3px;}
+.chip-r{background:var(--risk-bg);color:var(--risk);}
+.chip-a{background:var(--att-bg);color:var(--att);}
+.chip-b{background:var(--blue-bg);color:var(--blue);}
+.ar-row{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--surface);font-size:11.5px;}
+.ar-row:last-child{border-bottom:none;border-top:1px solid var(--ink);padding-top:8px;margin-top:2px;font-weight:600;}
+.ar-lbl{color:var(--muted);}
+.ar-val{font-family:var(--mono);font-weight:500;}
+
+/* ── CHECKLIST PANEL ─────────────────────────────────── */
+.task-panel{position:sticky;top:88px;max-height:calc(100vh - 100px);display:flex;flex-direction:column;overflow:hidden;}
+.task-panel>.card{height:100%;max-height:100%;display:flex;flex-direction:column;overflow:hidden;}
+.tp-header{flex-shrink:0;padding:8px 11px 7px;border-bottom:1px solid var(--rule);}
+.tp-header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.tp-title{font-size:12px;font-weight:600;}
+.tp-meta{font-family:var(--mono);font-size:9px;color:var(--muted);}
+.tp-bar-bg{height:3px;background:var(--surface);border-radius:2px;overflow:hidden;margin-bottom:4px;}
+.tp-bar-fill{height:100%;background:var(--acc);border-radius:2px;transition:width .4s;}
+.tp-bar-lbl{font-family:var(--mono);font-size:8.5px;color:var(--muted);}
+.tp-tabs{flex-shrink:0;display:flex;gap:3px;flex-wrap:wrap;padding:5px 9px;border-bottom:1px solid var(--rule);background:var(--surface);}
+.tp-tab{font-family:var(--mono);font-size:8px;letter-spacing:.04em;text-transform:uppercase;padding:3px 6px;border:1px solid var(--rule);border-radius:3px;background:var(--white);color:var(--muted);cursor:pointer;white-space:nowrap;}
+.tp-tab:hover{border-color:var(--hdr);color:var(--hdr);}
+.tp-tab.active{background:var(--hdr);color:#fff;border-color:var(--hdr);}
+.tp-tab .tc{display:inline-block;background:rgba(255,255,255,.2);border-radius:6px;padding:0 3px;margin-left:2px;font-size:7px;}
+.tp-tab:not(.active) .tc{background:var(--rule);color:var(--muted);}
+.tp-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;}
+.tp-body::-webkit-scrollbar{width:3px;}
+.tp-body::-webkit-scrollbar-thumb{background:var(--rule);border-radius:2px;}
+.tp-footer{flex-shrink:0;border-top:1px solid var(--rule);padding:5px 11px;background:var(--surface);display:flex;justify-content:space-between;align-items:center;}
+.tp-footer-stat{font-family:var(--mono);font-size:8.5px;color:var(--muted);}
+.tp-clear-btn{font-family:var(--mono);font-size:8.5px;color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline;}
+.cl-job{display:none;} .cl-job.active{display:block;}
+.cl-job-head{padding:7px 11px 5px;background:var(--paper);border-bottom:1px solid var(--rule);position:sticky;top:0;z-index:1;}
+.cl-job-title{font-weight:600;font-size:11px;margin-bottom:1px;}
+.cl-job-sub{font-family:var(--mono);font-size:8.5px;color:var(--muted);}
+.cl-job-prog{display:flex;align-items:center;gap:5px;margin-top:4px;}
+.cl-job-bar-bg{flex:1;height:3px;background:var(--rule);border-radius:2px;overflow:hidden;}
+.cl-job-bar-fill{height:100%;border-radius:2px;background:var(--acc);transition:width .3s;}
+.cl-job-pct{font-family:var(--mono);font-size:8.5px;color:var(--muted);min-width:22px;text-align:right;}
+.cl-section{margin:0;}
+.cl-sec-head{display:flex;align-items:center;justify-content:space-between;padding:4px 11px 4px;cursor:pointer;user-select:none;border-bottom:1px solid var(--surface);background:var(--paper);}
+.cl-sec-head:hover{background:var(--surface);}
+.cl-sec-lbl{font-family:var(--mono);font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+.cl-sec-meta{display:flex;align-items:center;gap:4px;}
+.cl-sec-cnt{font-family:var(--mono);font-size:8px;color:var(--muted);}
+.cl-chev{font-size:7px;color:var(--muted);transition:transform .2s;}
+.cl-section.collapsed .cl-chev{transform:rotate(-90deg);}
+.cl-section.collapsed .cl-items{display:none;}
+.cl-item{display:flex;align-items:center;gap:7px;padding:5px 11px;border-bottom:1px solid var(--surface);transition:background .1s;cursor:pointer;user-select:none;}
+.cl-item:hover{background:#f0f4ff;}
+.cl-item.done{background:#fafafa;}
+.cl-item.done .cl-item-name{text-decoration:line-through;color:var(--muted);}
+.cl-item.overdue .cl-item-name{color:var(--risk);font-weight:500;}
+.cl-cb{width:13px;height:13px;min-width:13px;border:1.5px solid #b0b8c8;border-radius:3px;display:flex;align-items:center;justify-content:center;background:var(--white);transition:all .15s;flex-shrink:0;}
+.cl-item:hover .cl-cb{border-color:var(--acc);}
+.cl-item.done .cl-cb{background:var(--acc);border-color:var(--acc);}
+.cl-item.done .cl-cb::after{content:'✓';font-size:8px;color:#fff;line-height:1;font-weight:700;}
+.cl-item-body{flex:1;min-width:0;}
+.cl-item-name{font-size:10.5px;line-height:1.3;}
+.cl-item-sub{font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:1px;display:block;}
+
+/* ── JOB TABLE ───────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto;margin-bottom:20px;}
+.job-tbl{width:100%;border-collapse:collapse;font-size:11.5px;}
+.job-tbl thead th{font-family:var(--mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:8px 10px;text-align:left;background:var(--surface);border-bottom:1px solid var(--rule);white-space:nowrap;cursor:pointer;user-select:none;}
+.job-tbl thead th.r{text-align:right;}
+.job-tbl thead th:hover{color:var(--ink);}
+.job-tbl tbody tr{border-bottom:1px solid var(--surface);}
+.job-tbl tbody tr:hover{background:#f8f9fc;}
+.job-tbl td{padding:9px 10px;vertical-align:middle;}
+.job-tbl td.r{text-align:right;font-family:var(--mono);font-size:11px;}
+.job-tbl td.mono{font-family:var(--mono);font-size:10.5px;}
+.job-tbl tfoot td{font-family:var(--mono);font-weight:500;font-size:11px;background:var(--surface);border-top:2px solid var(--ink);padding:9px 10px;}
+.job-tbl tfoot td.r{text-align:right;}
+.jnum{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--blue);text-decoration:none;}
+.jnum:hover{text-decoration:underline;}
+.jname{font-size:12px;font-weight:600;display:block;margin-bottom:1px;}
+.jname-sub{font-family:var(--mono);font-size:10px;color:var(--muted);}
+.pill{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:20px;white-space:nowrap;}
+.pill-on  {background:var(--on-bg); color:var(--on);  border:1px solid var(--on-bd);}
+.pill-att {background:var(--att-bg);color:var(--att); border:1px solid var(--att-bd);}
+.pill-risk{background:var(--risk-bg);color:var(--risk);border:1px solid var(--risk-bd);}
+.phase-tag{display:inline-block;font-family:var(--mono);font-size:9px;background:var(--blue-bg);color:var(--blue);padding:2px 7px;border-radius:3px;white-space:nowrap;}
+.jtlink{color:var(--blue);text-decoration:none;font-family:var(--mono);font-size:10px;}
+.jtlink:hover{text-decoration:underline;}
+.jtlink::after{content:'↗';font-size:8px;opacity:.6;vertical-align:super;}
+.summary-link{display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:9.5px;color:var(--blue);background:var(--blue-bg);border:1px solid #c0d4f0;padding:3px 8px;border-radius:4px;text-decoration:none;white-space:nowrap;}
+.summary-link:hover{background:var(--blue);color:#fff;}
+.summary-link::after{content:'↗';font-size:8px;}
+.c-green{color:var(--on);} .c-amber{color:var(--att);} .c-red{color:var(--risk);} .c-muted{color:var(--muted);}
+
+/* ── JOB DETAIL CARDS ────────────────────────────────── */
+.jd-grid{display:flex;flex-direction:column;gap:10px;margin-bottom:20px;}
+.jd-card{border:1px solid var(--rule);border-radius:7px;overflow:hidden;background:var(--white);}
+.jd-card.jd-on  {border-left:4px solid var(--on);}
+.jd-card.jd-att {border-left:4px solid var(--att);}
+.jd-card.jd-risk{border-left:4px solid var(--risk);}
+.jd-head{display:flex;align-items:flex-start;justify-content:space-between;padding:13px 16px 10px;border-bottom:1px solid var(--surface);gap:12px;}
+.jd-num{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:2px;}
+.jd-name{font-weight:700;font-size:14px;margin-bottom:2px;}
+.jd-meta{font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.6;}
+.jd-metrics{display:grid;grid-template-columns:repeat(6,1fr);padding:11px 16px;gap:4px;background:#fafbfc;border-bottom:1px solid var(--surface);}
+.jd-ml{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:2px;}
+.jd-mv{font-family:var(--mono);font-size:12.5px;font-weight:500;}
+.jd-flags{padding:9px 16px;display:flex;gap:7px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--surface);}
+.flag-tag{display:inline-flex;align-items:center;font-family:var(--mono);font-size:9.5px;padding:3px 8px;border-radius:4px;}
+.flag-r{background:var(--risk-bg);color:var(--risk);}
+.flag-a{background:var(--att-bg);color:var(--att);}
+.flag-b{background:var(--blue-bg);color:var(--blue);}
+.jd-note{padding:10px 16px 12px;font-size:12px;color:#3a3832;line-height:1.65;}
+.jd-action{background:var(--surface);padding:9px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:11.5px;}
+.jda-lbl{font-family:var(--mono);font-size:8.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:2px;}
+.jda-val{font-weight:500;}
+
+/* ── ACTION LIST ─────────────────────────────────────── */
+.action-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.action-item{background:var(--white);border:1px solid var(--rule);border-radius:7px;padding:12px 16px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;}
+.action-item.pri-risk{border-left:3px solid var(--risk);}
+.action-item.pri-att {border-left:3px solid var(--att);}
+.action-item.pri-on  {border-left:3px solid var(--on);}
+.ac-num{font-family:var(--mono);font-size:10px;color:var(--muted);}
+.ac-job{font-weight:600;font-size:12.5px;margin-bottom:2px;}
+.ac-desc{font-size:12px;color:#3a3832;line-height:1.6;}
+.ac-meta{display:flex;flex-direction:column;gap:3px;align-items:flex-end;min-width:110px;}
+.aml{font-family:var(--mono);font-size:8.5px;color:var(--muted);}
+.amv{font-family:var(--mono);font-size:10px;font-weight:500;}
+
+/* ── LOADING / ERROR ─────────────────────────────────── */
+.loading-screen{position:fixed;inset:0;background:var(--hdr);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:16px;}
+.loading-logo{width:48px;height:48px;background:var(--acc);border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Libre Baskerville',serif;font-style:italic;font-size:22px;color:#fff;}
+.loading-text{font-family:var(--mono);font-size:12px;color:#8a9ab0;letter-spacing:.1em;}
+.loading-bar{width:240px;height:3px;background:#2a3545;border-radius:2px;overflow:hidden;}
+.loading-fill{height:100%;background:var(--acc);border-radius:2px;animation:loadpulse 1.8s ease-in-out infinite;}
+@keyframes loadpulse{0%{width:0%}50%{width:70%}100%{width:100%}}
+.error-screen{position:fixed;inset:0;background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:12px;text-align:center;padding:32px;}
+.error-screen h2{font-family:var(--mono);color:var(--risk);}
+.error-screen p{color:var(--muted);font-size:13px;max-width:420px;}
+.error-screen code{font-family:var(--mono);font-size:11px;background:var(--surface);padding:8px 14px;border-radius:4px;display:block;margin-top:8px;text-align:left;}
+
+/* ── RESPONSIVE ──────────────────────────────────────── */
+@media(max-width:1200px){
+  .dash-outer{grid-template-columns:minmax(0,2fr) minmax(240px,0.65fr);}
+}
+@media(max-width:1000px){
+  .dash-outer{grid-template-columns:1fr;}
+  .task-panel{position:static;max-height:420px;}
+  .task-panel>.card{max-height:420px;}
+  .kpi-row{grid-template-columns:repeat(4,1fr);}
+}
+@media(max-width:720px){
+  .kpi-row{grid-template-columns:repeat(2,1fr);}
+  .dash-grid{grid-template-columns:1fr;}
+  .jd-metrics{grid-template-columns:repeat(3,1fr);}
+}
+@media print{
+  body{background:#fff;font-size:11px;}
+  .loading-screen,.error-screen,.no-print{display:none!important;}
+  .task-panel{position:static;max-height:none;overflow:visible;}
+  .tp-body{overflow:visible;max-height:none;}
+  .jd-card{break-inside:avoid;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOADING SCREEN ─────────────────────────────────── -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-logo">K</div>
+  <div class="loading-text">PULLING LIVE JOBTREAD DATA…</div>
+  <div class="loading-bar"><div class="loading-fill"></div></div>
+  <div style="font-family:var(--mono);font-size:10px;color:#555;" id="loadingStatus">Connecting to JobTread API…</div>
+</div>
+
+<!-- ── ERROR SCREEN ───────────────────────────────────── -->
+<div class="error-screen" id="errorScreen" style="display:none;">
+  <div class="loading-logo" style="background:var(--risk);">!</div>
+  <h2>Dashboard Error</h2>
+  <p id="errorMsg">Could not load JobTread data. Check your API credentials in the CONFIG block below.</p>
+  <code id="errorDetail"></code>
+</div>
+
+<!-- ── DASHBOARD (hidden until data loads) ───────────── -->
+<div id="dashboardContent" style="display:none;">
+
+<div class="topbar no-print">
+  <div class="tb-brand">
+    <div class="tb-logo" id="orgLogo">K</div>
+    <div>
+      <div class="tb-name" id="orgName">Loading…</div>
+      <div class="tb-sub">Weekly Job Health Dashboard · Internal Use Only</div>
+    </div>
+  </div>
+  <div class="tb-right">
+    <div class="tb-status" id="liveStatus">● Live Data</div>
+    <div class="tb-date" id="reportDate"></div>
+    <button class="print-btn no-print" onclick="window.print()">⬇ Save PDF</button>
+  </div>
+</div>
+
+<div class="filterbar no-print">
+  <span class="fl-label">Health Status</span>
+  <select id="filterStatus">
+    <option value="all">All</option>
+    <option value="on">On Track</option>
+    <option value="att">Needs Attention</option>
+    <option value="risk">High Risk</option>
+  </select>
+  <span class="fl-label">Phase</span>
+  <select id="filterPhase">
+    <option value="all">All Phases</option>
+    <option value="Pre-Construction">Pre-Construction</option>
+    <option value="Active Construction">Active Construction</option>
+    <option value="Project Closeout">Project Closeout</option>
+  </select>
+  <span class="fl-label">Job</span>
+  <select id="filterJob"><option value="all">All Jobs</option></select>
+  <span class="fl-clear" id="clearFilters">Clear filters</span>
+</div>
+
+<div class="page">
+
+<!-- KPI ROW -->
+<div class="sec-lbl" style="margin-top:6px;">Quick summary</div>
+<div class="kpi-row" id="kpiRow">
+  <div class="kpi k-acc"><div class="kpi-lbl">Active Jobs</div><div class="kpi-val" id="kTotal">—</div><div class="kpi-sub">incl. in report</div></div>
+  <div class="kpi k-on"> <div class="kpi-lbl">On Track</div><div class="kpi-val c-green" id="kOn">—</div><div class="kpi-sub">healthy &amp; current</div></div>
+  <div class="kpi k-att"><div class="kpi-lbl">Needs Attention</div><div class="kpi-val c-amber" id="kAtt">—</div><div class="kpi-sub">open items or gaps</div></div>
+  <div class="kpi k-risk"><div class="kpi-lbl">High Risk</div><div class="kpi-val c-red" id="kRisk">—</div><div class="kpi-sub">stalled / no activity</div></div>
+  <div class="kpi"><div class="kpi-lbl">Contract Value</div><div class="kpi-val" id="kContract">—</div><div class="kpi-sub" id="kContractSub">—</div></div>
+  <div class="kpi"><div class="kpi-lbl">Collected</div><div class="kpi-val c-green" id="kCollected">—</div><div class="kpi-sub" id="kCollectedPct">—</div></div>
+  <div class="kpi"><div class="kpi-lbl">Outstanding AR</div><div class="kpi-val c-amber" id="kAR">—</div><div class="kpi-sub">across all jobs</div></div>
+</div>
+
+<!-- DASH: CHARTS + CHECKLIST -->
+<div class="sec-lbl">Dashboard</div>
+<div class="dash-outer">
+  <div class="dash-left">
+    <div class="dash-grid">
+
+      <!-- Status donut -->
+      <div class="card">
+        <div class="card-head"><h3>Health status</h3><span class="badge" id="b-total">— jobs</span></div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="donutChart"></canvas></div>
+          <table class="mini-tbl" id="statusBreakdown"></table>
+        </div>
+      </div>
+
+      <!-- Concern summary -->
+      <div class="card">
+        <div class="card-head"><h3>Concern summary</h3><span class="badge">flags</span></div>
+        <div class="card-body"><table class="mini-tbl" id="concernTable"></table></div>
+      </div>
+
+      <!-- AR bar chart -->
+      <div class="card">
+        <div class="card-head"><h3>Contract vs. collected</h3><span class="badge">per job</span></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="arChart"></canvas></div></div>
+      </div>
+
+      <!-- AR summary -->
+      <div class="card">
+        <div class="card-head"><h3>AR financial summary</h3><span class="badge" id="b-arJobs">all jobs</span></div>
+        <div class="card-body" id="arSummary"></div>
+      </div>
+
+      <!-- Contract by job -->
+      <div class="card">
+        <div class="card-head"><h3>Contract value by job</h3><span class="badge">$K</span></div>
+        <div class="card-body"><div class="chart-wrap-tall"><canvas id="contractChart"></canvas></div></div>
+      </div>
+
+      <!-- Cost tracking -->
+      <div class="card">
+        <div class="card-head"><h3>Cost tracking — actual vs. projected</h3><span class="badge">jobs with data</span></div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="costChart"></canvas></div>
+          <div id="costNote" style="margin-top:8px;font-size:11px;color:var(--muted);font-family:var(--mono);line-height:1.7;"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CHECKLIST PANEL -->
+  <div class="task-panel">
+    <div class="card">
+      <div class="tp-header">
+        <div class="tp-header-row">
+          <span class="tp-title">Tasks &amp; Checklists</span>
+          <span class="tp-meta" id="tp-overall-meta">0 / 0</span>
+        </div>
+        <div class="tp-bar-bg"><div class="tp-bar-fill" id="tp-overall-bar" style="width:0%"></div></div>
+        <div class="tp-bar-lbl" id="tp-overall-lbl">Loading…</div>
+      </div>
+      <div class="tp-tabs" id="tpTabs"></div>
+      <div class="tp-body" id="tpBody"></div>
+      <div class="tp-footer">
+        <span class="tp-footer-stat" id="tp-footer-stat">0 items checked</span>
+        <button class="tp-clear-btn" id="tpClearBtn">Clear all checks</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JOB TRACKER TABLE -->
+<div class="sec-lbl">Active job tracker</div>
+<div class="card tbl-wrap">
+  <table class="job-tbl" id="jobTable">
+    <thead>
+      <tr>
+        <th onclick="sortTbl(0)">Job # ↕</th>
+        <th>Job Name</th>
+        <th>Client</th>
+        <th>PM</th>
+        <th>Phase</th>
+        <th class="mono">Last Activity</th>
+        <th class="r" onclick="sortTbl(6)">Contract ↕</th>
+        <th class="r" onclick="sortTbl(7)">Paid ↕</th>
+        <th class="r" onclick="sortTbl(8)">Outstanding ↕</th>
+        <th class="r" onclick="sortTbl(9)">Actual Costs ↕</th>
+        <th class="r">Margin</th>
+        <th>Health</th>
+        <th>Summary</th>
+        <th>Main Concern</th>
+      </tr>
+    </thead>
+    <tbody id="jobTableBody"></tbody>
+    <tfoot id="jobTableFoot"></tfoot>
+  </table>
+</div>
+
+<!-- JOB DETAIL CARDS -->
+<div class="sec-lbl">Job detail review</div>
+<div class="jd-grid" id="jobDetailGrid"></div>
+
+<!-- ACTION LIST -->
+<div class="sec-lbl">Prioritized action items</div>
+<div class="action-list" id="actionList"></div>
+
+<div id="reportFooter" style="border-top:1px solid var(--rule);padding-top:12px;font-family:var(--mono);font-size:9.5px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-top:28px;"></div>
+
+</div><!-- end page -->
+</div><!-- end dashboardContent -->
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗
+// ██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝
+// ██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗
+// ██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║
+// ╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝
+//  ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝
+//
+//  KANE REMODELING — DYNAMIC DASHBOARD ENGINE v2.0
+//  Replace the CONFIG block below with each client's details.
+//  The rest runs automatically every time the page loads.
+// ════════════════════════════════════════════════════════════
+
+// ─────────────────────────────────────────────
+//  CLIENT CONFIG  ← ONLY THIS SECTION CHANGES
+//  PER CLIENT — paste their JobTread details here
+// ─────────────────────────────────────────────
+const CONFIG = {
+  orgName:        "Kane Remodeling",
+  orgId:          "22NftqzPGNix",
+  jobtreadApiKey: "PASTE_API_KEY_HERE",        // ← client's JobTread API key
+  reportEmail:    "dan@kaneremodeling.com",
+  slackWebhook:   "",                           // optional
+  logoLetter:     "K",
+  reportPeriod:   "auto",                       // "auto" = previous Mon–Sun
+  timezone:       "America/Chicago",
+  jobPhaseMap: {                                // map job IDs to phases
+    "22PT3qMqbprT": "Active Construction",
+    "22PUf5Y9hZgU": "Active Construction",
+    "22PUfGMADf8z": "Pre-Construction",
+    "22PRBNvNTtW4": "Pre-Construction",
+    "22PVZDH83bLP": "Pre-Construction",
+    "22P3WRyiypDt": "Project Closeout",
+    "22NsrrVQJYux": "Project Closeout",
+  },
+  jobClientMap: {                               // map job IDs to client names
+    "22PT3qMqbprT": "Donaldson Household",
+    "22PUf5Y9hZgU": "Ariane Ledrut",
+    "22PUfGMADf8z": "Dennis & Dorothy Vollmer",
+    "22PRBNvNTtW4": "Liz & Michael Solka",
+    "22PVZDH83bLP": "Sydney Watkins",
+    "22P3WRyiypDt": "Mike Blair & Patricia Albright",
+    "22NsrrVQJYux": "LaVerne & Joseph Parker",
+  },
+  jobPmMap: {                                   // map job IDs to PMs
+    "22PT3qMqbprT": "Dan Lee",
+    "22PUf5Y9hZgU": "Dan Lee",
+    "22PUfGMADf8z": "Dan Lee",
+    "22PRBNvNTtW4": "Dan Lee",
+    "22PVZDH83bLP": "Dan Lee",
+    "22P3WRyiypDt": "Dan Lee",
+    "22NsrrVQJYux": "Dan Lee",
+  },
+  summaryFileMap: {                             // local summary page links
+    "22PT3qMqbprT": "job546_financial_summary.html",
+    "22PUf5Y9hZgU": "job550_financial_summary.html",
+    "22PUfGMADf8z": "job551_financial_summary.html",
+    "22PRBNvNTtW4": "job544_financial_summary.html",
+    "22PVZDH83bLP": "job00051116_financial_summary.html",
+    "22P3WRyiypDt": "job444_financial_summary.html",
+    "22NsrrVQJYux": "job411_financial_summary.html",
+  },
+  // Jobs to include in the weekly report (approved/active only)
+  includeJobIds: [
+    "22PT3qMqbprT", // 546 Donaldson
+    "22PUf5Y9hZgU", // 550 Ledrut
+    "22PUfGMADf8z", // 551 Vollmer
+    "22PRBNvNTtW4", // 544 Solka
+    "22PVZDH83bLP", // Balcones
+    "22P3WRyiypDt", // 444 Mountainclimb
+    "22NsrrVQJYux", // 411 Parker
+  ]
+};
+
+// ─────────────────────────────────────────────
+//  HEALTH SCORING ENGINE
+//  Runs automatically on live data
+// ─────────────────────────────────────────────
+function scoreJob(job) {
+  const paid      = job.totalPaid      || 0;
+  const contract  = job.projectedPrice || 0;
+  const actual    = job.actualCost     || 0;
+  const projected = job.projectedCost  || 0;
+  const pctCollected = contract > 0 ? paid / contract : 0;
+  const hasPendingCO = job.documents.some(d => d.type === 'customerOrder' && d.status === 'pending');
+  const hasUnpaidInv = job.documents.some(d => d.type === 'customerInvoice' && d.status === 'pending');
+  const hasDraftBill = job.documents.some(d => d.type === 'vendorBill' && d.status === 'draft');
+  const noCostBudget = projected === 0;
+  const noActualCost = actual === 0;
+  const lastActivity = job.lastActivity ? new Date(job.lastActivity) : null;
+  const daysSinceLast = lastActivity ? (Date.now() - lastActivity) / 86400000 : 999;
+  const margin = contract > 0 && projected > 0 ? (contract - projected) / contract : null;
+  const concerns = [];
+  if (hasPendingCO)  concerns.push('Pending change order');
+  if (hasUnpaidInv)  concerns.push('Unpaid invoice');
+  if (hasDraftBill)  concerns.push('Draft vendor bills');
+  if (noCostBudget)  concerns.push('No cost budget entered');
+  if (noActualCost && contract > 50000) concerns.push('$0 actual costs posted');
+  if (daysSinceLast > 90) concerns.push('No activity 90+ days');
+  if (margin !== null && margin < 0.15) concerns.push('Low margin risk');
+  // Score
+  let health = 'on';
+  if (daysSinceLast > 180 && contract > 0) health = 'risk';
+  else if (hasDraftBill && daysSinceLast > 90) health = 'risk';
+  else if (concerns.length >= 3) health = 'att';
+  else if (hasPendingCO || hasUnpaidInv || noCostBudget || daysSinceLast > 60) health = 'att';
+  return { health, concerns };
+}
+
+// ─────────────────────────────────────────────
+//  JOBTREAD API  — fetches via the API endpoint
+//  In production: swap for real API calls via
+//  your backend / Make.com HTTP module
+// ─────────────────────────────────────────────
+const JT_BASE = 'https://app.jobtread.com/jobs/';
+
+// Static data fallback — used when no API key is set
+// In production this gets replaced by live API data
+const STATIC_DATA = {
+  "22PT3qMqbprT": {id:"22PT3qMqbprT",name:"Job 546",number:"546",status:"approved",projectedPrice:181854.71,projectedCost:120208.51,actualCost:3276.75,totalPaid:166000,lastActivity:"2026-05-05",documents:[{type:"customerOrder",status:"approved",fullName:"Proposal 546-1",issueDate:"2026-03-02",price:160254},{type:"customerOrder",status:"approved",fullName:"Change Order 546-5",issueDate:"2026-03-30",price:13724.73},{type:"customerOrder",status:"approved",fullName:"Change Order 546-6",issueDate:"2026-04-14",price:5355.98},{type:"customerOrder",status:"approved",fullName:"Change Order 546-18",issueDate:"2026-04-24",price:1975},{type:"customerOrder",status:"approved",fullName:"Change Order 546-19",issueDate:"2026-04-27",price:545},{type:"customerInvoice",status:"approved",fullName:"Invoice 546-3",issueDate:"2026-03-30",price:50000,amountPaid:50000},{type:"customerInvoice",status:"approved",fullName:"Invoice 546-4",issueDate:"2026-03-30",price:50000,amountPaid:50000},{type:"customerInvoice",status:"approved",fullName:"Invoice 546-23",issueDate:"2026-05-05",price:66000,amountPaid:66000},{type:"vendorBill",status:"approved",fullName:"Expense 546-21",issueDate:"2026-04-09",price:3276.75,amountPaid:3276.75}],tasks:[{id:"t1",name:"Project Kickoff and Site Walk",completed:0,endDate:"2026-07-13"},{id:"t2",name:"Pull Electrical and Plumbing Permits",completed:0,endDate:"2026-07-16"},{id:"t3",name:"Order Cabinets and Countertops",completed:0,endDate:"2026-07-20"},{id:"t4",name:"Demolition",completed:0,endDate:"2026-07-27"},{id:"t5",name:"MEP Rough-In",completed:0,endDate:"2026-07-30"},{id:"t6",name:"Drywall",completed:0,endDate:"2026-08-04"},{id:"t7",name:"Install Cabinets",completed:0,endDate:"2026-08-11"},{id:"t8",name:"Install Countertops",completed:0,endDate:"2026-08-13"},{id:"t9",name:"Paint",completed:0,endDate:"2026-08-19"},{id:"t10",name:"Punch List Walk",completed:0,endDate:"2026-08-28"},{id:"t11",name:"Obtain Signed Contract",completed:1,endDate:"2026-03-02"},{id:"t12",name:"Finalize Budget",completed:1,endDate:"2026-03-02"}]},
+  "22PUf5Y9hZgU": {id:"22PUf5Y9hZgU",name:"Job 550",number:"550",status:"approved",projectedPrice:254104.4,projectedCost:0,actualCost:null,totalPaid:152462.64,lastActivity:"2026-05-15",documents:[{type:"customerOrder",status:"approved",fullName:"Proposal 550-1",issueDate:"2026-03-30",price:254104.4},{type:"customerOrder",status:"pending",fullName:"Change Order 550-13",issueDate:"2026-05-15",price:14810},{type:"customerInvoice",status:"approved",fullName:"Deposit 550-2",issueDate:"2026-03-30",price:76231.32,amountPaid:76231.32},{type:"customerInvoice",status:"approved",fullName:"Invoice 550-6",issueDate:"2026-04-07",price:76231.32,amountPaid:76231.32}],tasks:[]},
+  "22PUfGMADf8z": {id:"22PUfGMADf8z",name:"Job 551",number:"551",status:"approved",projectedPrice:162959.99,projectedCost:0,actualCost:null,totalPaid:48888,lastActivity:"2026-04-08",documents:[{type:"customerOrder",status:"approved",fullName:"Proposal 551-1",issueDate:"2026-03-30",price:162959.99},{type:"customerInvoice",status:"approved",fullName:"Deposit 551-3",issueDate:"2026-04-08",price:48888,amountPaid:48888}],tasks:[]},
+  "22PRBNvNTtW4": {id:"22PRBNvNTtW4",name:"Job 544",number:"544",status:"approved",projectedPrice:845652,projectedCost:0,actualCost:null,totalPaid:25000,lastActivity:"2026-04-17",documents:[{type:"customerOrder",status:"approved",fullName:"Proposal 544-2",issueDate:"2026-02-27",price:820652},{type:"customerOrder",status:"approved",fullName:"Change Order 544-4",issueDate:"2026-04-17",price:25000},{type:"customerInvoice",status:"approved",fullName:"Deposit 544-5",issueDate:"2026-04-17",price:25000,amountPaid:25000}],tasks:[{id:"t1",name:"Review & Prepare Change Order",completed:1},{id:"t2",name:"Review & Prepare Change Order",completed:1}]},
+  "22PVZDH83bLP": {id:"22PVZDH83bLP",name:"4804 Balcones Drive",number:"00051116",status:"approved",projectedPrice:265000,projectedCost:0,actualCost:null,totalPaid:15000,lastActivity:"2026-04-18",documents:[{type:"customerOrder",status:"approved",fullName:"Proposal 00051116-1",issueDate:"2026-04-14",price:250000},{type:"customerOrder",status:"approved",fullName:"Change Order 00051116-2",issueDate:"2026-04-18",price:15000},{type:"customerInvoice",status:"approved",fullName:"Deposit 00051116-3",issueDate:"2026-04-18",price:15000,amountPaid:15000}],tasks:[]},
+  "22P3WRyiypDt": {id:"22P3WRyiypDt",name:"Mountainclimb Dr. Remodel",number:"444",status:"approved",projectedPrice:213149.87,projectedCost:169025.50,actualCost:16125.15,totalPaid:201173.80,lastActivity:"2026-03-30",documents:[{type:"customerOrder",status:"approved",fullName:"Proposal 444-5",issueDate:"2025-03-18",price:165001.43},{type:"customerOrder",status:"approved",fullName:"Change Order 444-30",issueDate:"2026-03-30",price:-500},{type:"customerInvoice",status:"pending",fullName:"Invoice 444-31",issueDate:"2026-03-30",price:11976.07,amountPaid:0,balance:11976.07}],tasks:[{id:"t1",name:"Carpentry wrap-up",completed:1,endDate:"2026-01-14"},{id:"t2",name:"Paint prep / Cabinet Installation",completed:0,endDate:"2026-01-23"},{id:"t3",name:"Appliance delivery",completed:0,endDate:"2026-01-23"},{id:"t4",name:"Electrical trim out",completed:0,endDate:"2026-01-29"},{id:"t5",name:"Finish plumbing",completed:0,endDate:"2026-01-28"},{id:"t6",name:"Glass installation",completed:0,endDate:"2026-01-29"},{id:"t7",name:"Paint touch-ups",completed:0,endDate:"2026-01-30"},{id:"t8",name:"Occupancy inspection",completed:0,endDate:"2026-02-02"},{id:"t9",name:"Cabinet installation / appliance installation",completed:0,endDate:"2026-01-27"}]},
+  "22NsrrVQJYux": {id:"22NsrrVQJYux",name:"Job 411",number:"411",status:"approved",projectedPrice:359861.63,projectedCost:280534.43,actualCost:27165.92,totalPaid:327255.67,lastActivity:"2025-05-23",documents:[{type:"customerOrder",status:"approved",fullName:"Change Order 411-28",issueDate:"2025-05-12",price:24498.75},{type:"customerOrder",status:"denied",fullName:"Change Order 411-27",issueDate:"2025-05-05",price:29593.75},{type:"vendorBill",status:"draft",fullName:"Bill 411-7",issueDate:"2024-11-12",price:135},{type:"vendorBill",status:"draft",fullName:"Bill 411-8",issueDate:"2024-11-12",price:699.73},{type:"vendorBill",status:"draft",fullName:"Bill 411-12",issueDate:"2024-11-15",price:629.76},{type:"vendorBill",status:"draft",fullName:"Bill 411-14",issueDate:"2024-11-18",price:2563.93},{type:"vendorBill",status:"draft",fullName:"Bill 411-15",issueDate:"2024-11-18",price:552.08}],tasks:[]}
+};
+
+// ─────────────────────────────────────────────
+//  FORMAT HELPERS
+// ─────────────────────────────────────────────
+const fmt = (n) => n == null ? '—' : '$' + Number(n).toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+const fmtPct = (n) => n == null ? '—' : Math.round(n * 100) + '%';
+const fmtDate = (s) => { if(!s) return '—'; const d = new Date(s); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
+const daysSince = (s) => s ? Math.round((Date.now() - new Date(s)) / 86400000) : 999;
+const healthLabel = { on: 'On Track', att: 'Needs Attention', risk: 'High Risk' };
+const healthPill  = (h) => `<span class="pill pill-${h}">${healthLabel[h]}</span>`;
+const phaseTag    = (p) => `<span class="phase-tag">${p||'—'}</span>`;
+
+// ─────────────────────────────────────────────
+//  MAIN RENDER ENGINE
+// ─────────────────────────────────────────────
+async function loadDashboard() {
+  setStatus('Connecting to JobTread API…');
+  let jobs;
+
+  try {
+    // Production: replace this block with real API call via your backend
+    // e.g. const res = await fetch('/api/jobtread', {method:'POST', body: JSON.stringify({orgId: CONFIG.orgId, apiKey: CONFIG.jobtreadApiKey, jobIds: CONFIG.includeJobIds})});
+    // const data = await res.json();
+    // For now: use static data (refreshed weekly by Make.com)
+    jobs = CONFIG.includeJobIds.map(id => STATIC_DATA[id]).filter(Boolean);
+    setStatus('Processing ' + jobs.length + ' jobs…');
+    await new Promise(r => setTimeout(r, 600));
+
+  } catch(e) {
+    showError('Failed to load JobTread data', e.message);
+    return;
+  }
+
+  // Score all jobs
+  const scored = jobs.map(j => ({ ...j, ...scoreJob(j), phase: CONFIG.jobPhaseMap[j.id] || 'Active Construction', client: CONFIG.jobClientMap[j.id] || '—', pm: CONFIG.jobPmMap[j.id] || '—', summaryFile: CONFIG.summaryFileMap[j.id] || '#' }));
+
+  renderAll(scored);
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('dashboardContent').style.display = 'block';
+}
+
+function renderAll(jobs) {
+  const now = new Date();
+  document.getElementById('orgName').textContent = CONFIG.orgName;
+  document.getElementById('orgLogo').textContent = CONFIG.logoLetter;
+  document.getElementById('page-title').textContent = `Weekly Job Health Dashboard — ${CONFIG.orgName}`;
+  document.getElementById('reportDate').textContent = 'Generated: ' + now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  document.getElementById('reportFooter').innerHTML = `<span>${CONFIG.orgName} · Weekly Job Health Dashboard · Internal Use Only</span><span>Generated ${now.toLocaleDateString()} · Source: JobTread</span>`;
+
+  // Totals
+  const onCount   = jobs.filter(j => j.health === 'on').length;
+  const attCount  = jobs.filter(j => j.health === 'att').length;
+  const riskCount = jobs.filter(j => j.health === 'risk').length;
+  const totalContract  = jobs.reduce((s,j) => s + (j.projectedPrice||0), 0);
+  const totalPaid      = jobs.reduce((s,j) => s + (j.totalPaid||0), 0);
+  const totalAR        = totalContract - totalPaid;
+
+  // KPIs
+  document.getElementById('kTotal').textContent    = jobs.length;
+  document.getElementById('kOn').textContent       = onCount;
+  document.getElementById('kAtt').textContent      = attCount;
+  document.getElementById('kRisk').textContent     = riskCount;
+  document.getElementById('kContract').textContent = totalContract >= 1000000 ? '$' + (totalContract/1000000).toFixed(2) + 'M' : fmt(totalContract);
+  document.getElementById('kContractSub').textContent = jobs.length + ' jobs';
+  document.getElementById('kCollected').textContent = totalContract > 0 ? '$' + Math.round(totalPaid/1000) + 'K' : '—';
+  document.getElementById('kCollectedPct').textContent = fmtPct(totalContract > 0 ? totalPaid/totalContract : 0) + ' of contracts';
+  document.getElementById('kAR').textContent = totalAR >= 1000000 ? '$' + (totalAR/1000000).toFixed(2) + 'M' : fmt(totalAR);
+  document.getElementById('b-total').textContent   = jobs.length + ' jobs';
+  document.getElementById('b-arJobs').textContent  = 'all ' + jobs.length + ' jobs';
+
+  // Status breakdown table
+  document.getElementById('statusBreakdown').innerHTML = `
+    <tr><td><span class="dot dot-on"></span>On Track</td><td>${onCount}</td></tr>
+    <tr><td><span class="dot dot-att"></span>Needs Attention</td><td>${attCount}</td></tr>
+    <tr><td><span class="dot dot-risk"></span>High Risk</td><td>${riskCount}</td></tr>`;
+
+  // Concern summary
+  const pendingCOs  = jobs.filter(j => j.documents.some(d => d.type==='customerOrder' && d.status==='pending')).length;
+  const noBudget    = jobs.filter(j => !j.projectedCost || j.projectedCost === 0).length;
+  const noActual    = jobs.filter(j => !j.actualCost || j.actualCost === 0).length;
+  const unpaidInv   = jobs.filter(j => j.documents.some(d => d.type==='customerInvoice' && d.status==='pending')).length;
+  const stale90     = jobs.filter(j => daysSince(j.lastActivity) > 90).length;
+  const unknownMgn  = jobs.filter(j => !j.projectedCost || j.projectedCost === 0).length;
+  const draftBills  = jobs.filter(j => j.documents.some(d => d.type==='vendorBill' && d.status==='draft')).length;
+  document.getElementById('concernTable').innerHTML = [
+    ['Open / pending change orders', pendingCOs, 'a'],
+    ['No cost budget in JobTread',   noBudget,   'r'],
+    ['$0 actual costs posted',       noActual,   'r'],
+    ['Unpaid / pending invoices',    unpaidInv,  'a'],
+    ['No activity > 90 days',        stale90,    'r'],
+    ['Margin unknown',               unknownMgn, 'a'],
+    ['Vendor bills in draft',        draftBills, 'r'],
+  ].map(([lbl, cnt, t]) => `<tr><td>${lbl}</td><td><span class="chip chip-${t}">${cnt}</span></td></tr>`).join('');
+
+  // AR summary card
+  const totalActual = jobs.reduce((s,j) => s + (j.actualCost||0), 0);
+  const knownMargin = jobs.filter(j => j.projectedCost > 0 && j.projectedPrice > 0);
+  const avgMargin   = knownMargin.length ? knownMargin.reduce((s,j) => s + (j.projectedPrice - j.projectedCost)/j.projectedPrice, 0) / knownMargin.length : null;
+  document.getElementById('arSummary').innerHTML = [
+    ['Total contract value',        fmt(totalContract), ''],
+    ['Total payments collected',    fmt(totalPaid),     'c-green'],
+    ['Total outstanding AR',        fmt(totalAR),       'c-amber'],
+    ['Total actual costs posted',   fmt(totalActual),   ''],
+    ['Avg. proj. margin (known)',    avgMargin ? '~' + Math.round(avgMargin*100) + '%' : '—', avgMargin ? 'c-green' : 'c-muted'],
+    ['Jobs with known margin',      knownMargin.length + ' of ' + jobs.length, ''],
+  ].map(([l,v,c]) => `<div class="ar-row"><span class="ar-lbl">${l}</span><span class="ar-val ${c}">${v}</span></div>`).join('');
+
+  // Cost tracking note
+  const withProjected = jobs.filter(j => j.projectedCost > 0).length;
+  const withActual    = jobs.filter(j => j.actualCost > 0).length;
+  document.getElementById('costNote').innerHTML = `Only ${withActual} of ${jobs.length} jobs have actual costs posted.<br>Only ${withProjected} of ${jobs.length} have projected costs entered.`;
+
+  // Filter dropdown
+  const jobSel = document.getElementById('filterJob');
+  jobSel.innerHTML = '<option value="all">All Jobs</option>' + jobs.map(j => `<option value="${j.id}">${j.number} — ${j.client}</option>`).join('');
+
+  // Build charts
+  buildCharts(jobs);
+
+  // Build table
+  buildTable(jobs);
+
+  // Build detail cards
+  buildDetailCards(jobs);
+
+  // Build action list
+  buildActionList(jobs);
+
+  // Build checklist
+  buildChecklist(jobs);
+}
+
+// ─────────────────────────────────────────────
+//  CHARTS
+// ─────────────────────────────────────────────
+let charts = {};
+function buildCharts(jobs) {
+  const destroy = (id) => { if(charts[id]) { charts[id].destroy(); delete charts[id]; } };
+
+  destroy('donut'); destroy('ar'); destroy('contract'); destroy('cost');
+
+  charts['donut'] = new Chart(document.getElementById('donutChart'), {
+    type:'doughnut',
+    data:{
+      labels:['On Track','Needs Attention','High Risk'],
+      datasets:[{
+        data:[jobs.filter(j=>j.health==='on').length, jobs.filter(j=>j.health==='att').length, jobs.filter(j=>j.health==='risk').length],
+        backgroundColor:['#2e8b6e','#e8a020','#c0392b'],
+        borderWidth:2, borderColor:'#ffffff', hoverOffset:6
+      }]
+    },
+    options:{
+      cutout:'68%',
+      layout:{padding:4},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:(ctx)=>` ${ctx.label}: ${ctx.raw} job${ctx.raw!==1?'s':''}`}}
+      },
+      responsive:true, maintainAspectRatio:false
+    }
+  });
+
+  charts['ar'] = new Chart(document.getElementById('arChart'), {
+    type:'bar',
+    data:{ labels: jobs.map(j=>j.number),
+           datasets:[
+             {label:'Paid',      data:jobs.map(j=>j.totalPaid||0),               backgroundColor:'#2e8b6e', borderRadius:{topLeft:3,topRight:3,bottomLeft:0,bottomRight:0}, borderSkipped:false},
+             {label:'Outstanding',data:jobs.map(j=>(j.projectedPrice||0)-(j.totalPaid||0)), backgroundColor:'rgba(232,176,64,0.85)', borderRadius:{topLeft:3,topRight:3,bottomLeft:0,bottomRight:0}, borderSkipped:false}
+           ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{
+          position:'bottom',
+          labels:{font:{family:'IBM Plex Mono',size:9},boxWidth:10,boxHeight:10,padding:10,
+                  generateLabels:(chart)=>chart.data.datasets.map((ds,i)=>({text:ds.label,fillStyle:ds.backgroundColor,strokeStyle:'transparent',lineWidth:0,datasetIndex:i}))}
+        },
+        tooltip:{callbacks:{label:(ctx)=>` ${ctx.dataset.label}: $${Number(ctx.raw).toLocaleString()}`}}
+      },
+      layout:{padding:{top:4,bottom:0}},
+      scales:{
+        x:{stacked:true,
+           ticks:{font:{family:'IBM Plex Mono',size:9},color:'#7a7e8a'},
+           grid:{display:false},
+           border:{display:false}},
+        y:{stacked:true,
+           ticks:{font:{family:'IBM Plex Mono',size:9},color:'#7a7e8a',callback:v=>v>=1000000?'$'+(v/1000000).toFixed(1)+'M':'$'+(v/1000).toFixed(0)+'K'},
+           grid:{color:'#eef0f4'},
+           border:{display:false}}
+      }
+    }
+  });
+
+  charts['contract'] = new Chart(document.getElementById('contractChart'), {
+    type:'bar',
+    data:{
+      labels: jobs.map(j => j.number + ' — ' + (j.client||'').split(' ')[0]),
+      datasets:[{
+        label:'Contract Value',
+        data:jobs.map(j=>Math.round((j.projectedPrice||0)/1000)),
+        backgroundColor: jobs.map(j => j.health==='risk' ? 'rgba(192,57,43,0.75)' : j.health==='att' ? 'rgba(232,160,32,0.75)' : 'rgba(46,139,110,0.75)'),
+        borderRadius:4, borderSkipped:false
+      }]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      layout:{padding:{right:8}},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:(ctx)=>' $'+Number(ctx.raw).toLocaleString()+'K'}}
+      },
+      scales:{
+        x:{ticks:{font:{family:'IBM Plex Mono',size:9},color:'#7a7e8a',callback:v=>'$'+v+'K'},grid:{color:'#eef0f4'},border:{display:false}},
+        y:{ticks:{font:{family:'IBM Plex Mono',size:9},color:'#3a3832'},grid:{display:false},border:{display:false}}
+      }
+    }
+  });
+
+  const costJobs = jobs.filter(j => j.projectedCost > 0 || j.actualCost > 0);
+  charts['cost'] = new Chart(document.getElementById('costChart'), {
+    type:'bar',
+    data:{
+      labels: costJobs.map(j=>j.number),
+      datasets:[
+        {label:'Actual costs',    data:costJobs.map(j=>j.actualCost||0),    backgroundColor:'#2e8b6e', borderRadius:3, borderSkipped:false},
+        {label:'Projected cost',  data:costJobs.map(j=>j.projectedCost||0), backgroundColor:'rgba(46,139,110,0.18)', borderRadius:3, borderSkipped:false}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'bottom',labels:{font:{family:'IBM Plex Mono',size:9},boxWidth:10,boxHeight:10,padding:10}},
+        tooltip:{callbacks:{label:(ctx)=>` ${ctx.dataset.label}: $${Number(ctx.raw).toLocaleString()}`}}
+      },
+      scales:{
+        x:{ticks:{font:{family:'IBM Plex Mono',size:9},color:'#7a7e8a'},grid:{display:false},border:{display:false}},
+        y:{ticks:{font:{family:'IBM Plex Mono',size:9},color:'#7a7e8a',callback:v=>'$'+(v/1000).toFixed(0)+'K'},grid:{color:'#eef0f4'},border:{display:false}}
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────
+//  JOB TABLE
+// ─────────────────────────────────────────────
+function buildTable(jobs) {
+  const tbody = document.getElementById('jobTableBody');
+  const tfoot = document.getElementById('jobTableFoot');
+  tbody.innerHTML = jobs.map(j => {
+    const ar = (j.projectedPrice||0) - (j.totalPaid||0);
+    const margin = j.projectedCost > 0 && j.projectedPrice > 0 ? ((j.projectedPrice - j.projectedCost) / j.projectedPrice * 100).toFixed(1) + '%' : '<span class="c-muted">Unknown</span>';
+    const arClass = ar > 50000 ? 'c-amber' : ar > 0 ? '' : 'c-green';
+    const concern = j.concerns && j.concerns.length ? j.concerns[0] : '—';
+    return `<tr data-status="${j.health}" data-phase="${j.phase||''}" data-job="${j.id}">
+      <td><a class="jnum jtlink" href="${'https://app.jobtread.com/jobs/'+j.id}" target="_blank" rel="noopener noreferrer">${j.number}</a></td>
+      <td><span class="jname">${j.name}</span><span class="jname-sub">${j.client}</span></td>
+      <td class="mono">${j.client}</td>
+      <td class="mono">${j.pm}</td>
+      <td>${phaseTag(j.phase)}</td>
+      <td class="mono">${fmtDate(j.lastActivity)}</td>
+      <td class="r">${fmt(j.projectedPrice)}</td>
+      <td class="r c-green">${fmt(j.totalPaid)}</td>
+      <td class="r ${arClass}">${fmt(ar)}</td>
+      <td class="r">${fmt(j.actualCost)}</td>
+      <td class="r">${margin}</td>
+      <td>${healthPill(j.health)}</td>
+      <td><a href="${j.summaryFile}" target="_blank" rel="noopener noreferrer" class="summary-link">View Summary</a></td>
+      <td style="font-size:11px;color:var(--muted);">${concern}</td>
+    </tr>`;
+  }).join('');
+
+  const tc = jobs.reduce((s,j) => s + (j.projectedPrice||0), 0);
+  const tp = jobs.reduce((s,j) => s + (j.totalPaid||0), 0);
+  const ta = jobs.reduce((s,j) => s + (j.actualCost||0), 0);
+  tfoot.innerHTML = `<tr>
+    <td colspan="6">Totals — ${jobs.length} active jobs</td>
+    <td class="r">${fmt(tc)}</td>
+    <td class="r">${fmt(tp)}</td>
+    <td class="r">${fmt(tc-tp)}</td>
+    <td class="r">${fmt(ta)}</td>
+    <td colspan="4"></td>
+  </tr>`;
+}
+
+// ─────────────────────────────────────────────
+//  JOB DETAIL CARDS
+// ─────────────────────────────────────────────
+function buildDetailCards(jobs) {
+  const grid = document.getElementById('jobDetailGrid');
+  grid.innerHTML = jobs.map(j => {
+    const ar = (j.projectedPrice||0) - (j.totalPaid||0);
+    const margin = j.projectedCost > 0 && j.projectedPrice > 0 ? Math.round((j.projectedPrice - j.projectedCost) / j.projectedPrice * 100) + '%' : 'Unknown';
+    const marginClass = j.projectedCost > 0 ? (parseFloat(margin) >= 20 ? 'c-green' : 'c-amber') : 'c-muted';
+    const flags = (j.concerns||[]).map(c => `<span class="flag-tag flag-${c.includes('No activity')||c.includes('Risk')||c.includes('draft') ? 'r' : 'a'}">${c}</span>`).join('');
+    const draftBills = j.documents.filter(d => d.type==='vendorBill' && d.status==='draft');
+    const pendingCOs = j.documents.filter(d => d.type==='customerOrder' && d.status==='pending');
+    let note = '';
+    if (j.health === 'risk' && daysSince(j.lastActivity) > 90) note = `<strong>No activity for ${daysSince(j.lastActivity)} days.</strong> `;
+    if (pendingCOs.length) note += `${pendingCOs.length} pending CO(s) require resolution. `;
+    if (draftBills.length) note += `${draftBills.length} vendor bill(s) stuck in draft. `;
+    if (!j.projectedCost || j.projectedCost === 0) note += `No cost budget entered — profitability unknown. `;
+    if (!note) note = 'Job is progressing normally. Monitor cost entry and invoicing schedule.';
+
+    return `<div class="jd-card jd-${j.health}" data-status="${j.health}" data-phase="${j.phase||''}" data-job="${j.id}">
+      <div class="jd-head">
+        <div>
+          <div class="jd-num">Job #${j.number} &nbsp;·&nbsp; <a href="${'https://app.jobtread.com/jobs/'+j.id}" target="_blank" rel="noopener noreferrer" class="jtlink">Open in JobTread</a> &nbsp;·&nbsp; <a href="${j.summaryFile}" target="_blank" rel="noopener noreferrer" class="summary-link">View Summary</a></div>
+          <div class="jd-name">${j.name}</div>
+          <div class="jd-meta">Client: ${j.client} &nbsp;·&nbsp; PM: ${j.pm} &nbsp;·&nbsp; Phase: ${j.phase||'—'} &nbsp;·&nbsp; Last activity: ${fmtDate(j.lastActivity)}</div>
+        </div>
+        ${healthPill(j.health)}
+      </div>
+      <div class="jd-metrics">
+        <div><div class="jd-ml">Contract</div><div class="jd-mv">${fmt(j.projectedPrice)}</div></div>
+        <div><div class="jd-ml">Paid</div><div class="jd-mv c-green">${fmt(j.totalPaid)}</div></div>
+        <div><div class="jd-ml">Outstanding</div><div class="jd-mv ${ar > 50000 ? 'c-amber' : ''}">${fmt(ar)}</div></div>
+        <div><div class="jd-ml">Actual Costs</div><div class="jd-mv">${fmt(j.actualCost)}</div></div>
+        <div><div class="jd-ml">Proj. Cost</div><div class="jd-mv">${j.projectedCost ? fmt(j.projectedCost) : '—'}</div></div>
+        <div><div class="jd-ml">Proj. Margin</div><div class="jd-mv ${marginClass}">${margin}</div></div>
+      </div>
+      ${flags ? `<div class="jd-flags">${flags}</div>` : ''}
+      <div class="jd-note">${note}</div>
+      <div class="jd-action">
+        <div><div class="jda-lbl">Key Action</div><div class="jda-val">${j.concerns && j.concerns.length ? j.concerns[0] : 'Monitor progress'}</div></div>
+        <div><div class="jda-lbl">Owner</div><div class="jda-val">${j.pm}</div></div>
+        <div><div class="jda-lbl">Health</div><div class="jda-val">${healthPill(j.health)}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────
+//  ACTION LIST
+// ─────────────────────────────────────────────
+function buildActionList(jobs) {
+  const list = document.getElementById('actionList');
+  const actions = [];
+
+  jobs.forEach(j => {
+    const draftBills = j.documents.filter(d => d.type==='vendorBill' && d.status==='draft');
+    const pendingCOs = j.documents.filter(d => d.type==='customerOrder' && d.status==='pending');
+    const pendingInv = j.documents.filter(d => d.type==='customerInvoice' && d.status==='pending');
+    const ds = daysSince(j.lastActivity);
+
+    if (ds > 90 && j.health === 'risk')
+      actions.push({ priority: 'risk', job: j, title: `Stalled ${ds} days — determine project status`, desc: `No activity since ${fmtDate(j.lastActivity)}. Confirm whether work is complete and take action to close or reactivate.`, owner: j.pm, due: 'This week' });
+    if (pendingCOs.length)
+      actions.push({ priority: 'att', job: j, title: `Resolve ${pendingCOs.length} pending change order(s)`, desc: pendingCOs.map(d=>`${d.fullName} ($${Number(d.price).toLocaleString()}) — issued ${fmtDate(d.issueDate)}`).join(' · '), owner: j.pm, due: 'This week' });
+    if (pendingInv.length)
+      actions.push({ priority: 'att', job: j, title: `Collect ${pendingInv.length} unpaid invoice(s)`, desc: pendingInv.map(d=>`${d.fullName}: ${fmt(d.balance||d.price)}`).join(' · '), owner: 'Finance', due: 'Follow up now' });
+    if (draftBills.length)
+      actions.push({ priority: 'att', job: j, title: `Approve or void ${draftBills.length} draft vendor bill(s)`, desc: draftBills.map(d=>d.fullName).join(', '), owner: 'Patrick / Bookkeeper', due: 'This week' });
+    if (!j.projectedCost && j.projectedPrice > 50000)
+      actions.push({ priority: 'att', job: j, title: `Enter cost budget — ${fmt(j.projectedPrice)} contract has $0 entered`, desc: 'Cannot track profitability without a cost budget. Enter before construction begins or continues.', owner: 'Dan / Finance', due: 'Before mobilization' });
+  });
+
+  // Sort: risk first
+  actions.sort((a,b) => a.priority === 'risk' ? -1 : b.priority === 'risk' ? 1 : 0);
+
+  list.innerHTML = actions.slice(0, 10).map((a, i) => `
+    <div class="action-item pri-${a.priority}" data-status="${a.job.health}" data-phase="${a.job.phase||''}" data-job="${a.job.id}">
+      <div class="ac-num">${String(i+1).padStart(2,'0')} · <span class="pill pill-${a.priority}" style="font-size:8px;">${healthLabel[a.priority]||'Action'}</span></div>
+      <div>
+        <div class="ac-job">${a.job.number} — ${a.job.name} / ${a.job.client}</div>
+        <div class="ac-desc">${a.title}.<br>${a.desc}</div>
+      </div>
+      <div class="ac-meta">
+        <div><div class="aml">Owner</div><div class="amv">${a.owner}</div></div>
+        <div><div class="aml">Due</div><div class="amv">${a.due}</div></div>
+      </div>
+    </div>`).join('');
+}
+
+// ─────────────────────────────────────────────
+//  CHECKLIST ENGINE
+// ─────────────────────────────────────────────
+let checked = new Set();
+
+function buildChecklist(jobs) {
+  const tabs  = document.getElementById('tpTabs');
+  const body  = document.getElementById('tpBody');
+  tabs.innerHTML = '';
+  body.innerHTML = '';
+
+  jobs.forEach((j, idx) => {
+    const tasks = j.tasks || [];
+    const tabBtn = document.createElement('button');
+    tabBtn.className = 'tp-tab' + (idx === 0 ? ' active' : '');
+    tabBtn.setAttribute('data-job', j.id);
+    tabBtn.innerHTML = `${j.number}<span class="tc" id="tc-${j.id}">${tasks.length}</span>`;
+    tabBtn.onclick = () => switchTab(j.id, tabBtn);
+    tabs.appendChild(tabBtn);
+
+    const jobDiv = document.createElement('div');
+    jobDiv.className = 'cl-job' + (idx === 0 ? ' active' : '');
+    jobDiv.id = 'cljob-' + j.id;
+
+    const openTasks  = tasks.filter(t => !t.completed);
+    const doneTasks  = tasks.filter(t => t.completed);
+    const today      = new Date();
+    const overdueTasks = openTasks.filter(t => t.endDate && new Date(t.endDate) < today);
+
+    jobDiv.innerHTML = `<div class="cl-job-head">
+      <div class="cl-job-title">${j.number} — ${j.name}</div>
+      <div class="cl-job-sub">${j.phase} · ${tasks.length} total · ${overdueTasks.length} overdue</div>
+      <div class="cl-job-prog">
+        <div class="cl-job-bar-bg"><div class="cl-job-bar-fill" id="bar-${j.id}" style="width:${tasks.length ? Math.round(doneTasks.length/tasks.length*100) : 0}%"></div></div>
+        <span class="cl-job-pct" id="pct-${j.id}">${tasks.length ? Math.round(doneTasks.length/tasks.length*100) : 0}%</span>
+      </div>
+    </div>`;
+
+    // Open tasks section
+    if (openTasks.length) {
+      const sec = buildSection(j.id, 'open', 'Open Tasks', openTasks, today, true);
+      jobDiv.appendChild(sec);
+    }
+    if (doneTasks.length) {
+      const sec = buildSection(j.id, 'done', 'Completed Tasks', doneTasks, today, false);
+      jobDiv.appendChild(sec);
+    }
+
+    // Suggested financial actions
+    const sugActions = [];
+    if (!j.projectedCost) sugActions.push({ name: `Enter cost budget — ${fmt(j.projectedPrice)} contract`, sub: 'Owner: Finance / Dan' });
+    if (j.documents.some(d => d.type==='vendorBill' && d.status==='draft')) sugActions.push({ name: 'Approve or void draft vendor bills', sub: 'Owner: Patrick' });
+    if (j.documents.some(d => d.type==='customerInvoice' && d.status==='pending')) sugActions.push({ name: 'Follow up on pending invoice', sub: 'Owner: Finance' });
+    if (j.documents.some(d => d.type==='customerOrder' && d.status==='pending')) sugActions.push({ name: 'Resolve pending change order with client', sub: 'Owner: ' + j.pm });
+    if (daysSince(j.lastActivity) > 60) sugActions.push({ name: `Confirm project status — ${daysSince(j.lastActivity)} days since last activity`, sub: 'Owner: ' + j.pm });
+
+    if (sugActions.length) {
+      const sec = buildSection(j.id, 'fin', 'Financial Action Items', sugActions.map((a,i) => ({ id: j.id+'-fin-'+i, name: a.name, completed: 0, sub: a.sub, suggested: true })), today, false);
+      jobDiv.appendChild(sec);
+    }
+
+    body.appendChild(jobDiv);
+  });
+
+  loadChecks();
+  updateChecklistProgress(jobs);
+}
+
+function buildSection(jobId, secKey, label, tasks, today, defaultOpen) {
+  const sec = document.createElement('div');
+  sec.className = 'cl-section' + (defaultOpen ? '' : ' collapsed');
+  sec.id = `sec-${jobId}-${secKey}`;
+
+  const head = document.createElement('div');
+  head.className = 'cl-sec-head';
+  head.innerHTML = `<span class="cl-sec-lbl">${label}</span><span class="cl-sec-meta"><span class="cl-sec-cnt" id="cnt-sec-${jobId}-${secKey}">0/${tasks.length}</span><span class="cl-chev">▾</span></span>`;
+  head.onclick = () => sec.classList.toggle('collapsed');
+  sec.appendChild(head);
+
+  const items = document.createElement('div');
+  items.className = 'cl-items';
+
+  tasks.forEach(t => {
+    const itemId = t.id || (jobId + '-' + secKey + '-' + t.name.slice(0,10).replace(/\s/g,''));
+    const isOverdue = !t.completed && t.endDate && new Date(t.endDate) < today;
+    const isDone = t.completed || checked.has(itemId);
+    const item = document.createElement('div');
+    item.className = `cl-item${isDone ? ' done' : ''}${isOverdue ? ' overdue' : ''}`;
+    item.id = 'ci-' + itemId;
+    item.onclick = () => toggleCheck(itemId, jobId);
+    const sub = t.sub || (t.endDate ? (isOverdue ? `OVERDUE — was due ${fmtDate(t.endDate)}` : `Due ${fmtDate(t.endDate)}`) : '');
+    item.innerHTML = `<div class="cl-cb"></div><div class="cl-item-body"><div class="cl-item-name">${t.name}</div>${sub ? `<span class="cl-item-sub">${sub}</span>` : ''}</div>`;
+    items.appendChild(item);
+  });
+  sec.appendChild(items);
+  return sec;
+}
+
+function toggleCheck(itemId, jobId) {
+  const elId = 'ci-' + itemId;
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (checked.has(itemId)) checked.delete(itemId);
+  else checked.add(itemId);
+  el.classList.toggle('done', checked.has(itemId));
+  saveChecks();
+  updateChecklistProgress();
+}
+
+function switchTab(jobId, btn) {
+  document.querySelectorAll('.tp-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.cl-job').forEach(j => j.classList.remove('active'));
+  const target = document.getElementById('cljob-' + jobId);
+  if (target) target.classList.add('active');
+}
+
+function updateChecklistProgress() {
+  const allItems = document.querySelectorAll('.cl-item');
+  const total = allItems.length;
+  const done  = document.querySelectorAll('.cl-item.done').length;
+  const pct   = total ? Math.round(done/total*100) : 0;
+  document.getElementById('tp-overall-bar').style.width = pct + '%';
+  document.getElementById('tp-overall-meta').textContent = done + ' / ' + total + ' complete';
+  document.getElementById('tp-overall-lbl').textContent  = pct + '% complete across all active jobs';
+  document.getElementById('tp-footer-stat').textContent  = done + ' items checked';
+
+  // Update section counts
+  document.querySelectorAll('.cl-sec-cnt').forEach(cnt => {
+    const secId  = cnt.id.replace('cnt-', '');
+    const secEl  = document.getElementById(secId);
+    if (!secEl) return;
+    const secItems = secEl.querySelectorAll('.cl-item');
+    const secDone  = secEl.querySelectorAll('.cl-item.done').length;
+    cnt.textContent = secDone + '/' + secItems.length;
+  });
+}
+
+function saveChecks()  { try { sessionStorage.setItem('kr_checks_v2', JSON.stringify([...checked])); } catch(e){} }
+function loadChecks()  { try { const s = sessionStorage.getItem('kr_checks_v2'); if(s) checked = new Set(JSON.parse(s)); } catch(e){} }
+document.addEventListener('DOMContentLoaded', () => {
+  const cb = document.getElementById('tpClearBtn');
+  if (cb) cb.onclick = () => { if(confirm('Clear all checks?')) { checked.clear(); saveChecks(); document.querySelectorAll('.cl-item.done').forEach(el => el.classList.remove('done')); updateChecklistProgress(); }};
+});
+
+// ─────────────────────────────────────────────
+//  FILTERS & TABLE SORT
+// ─────────────────────────────────────────────
+function applyFilters() {
+  const st = document.getElementById('filterStatus').value;
+  const ph = document.getElementById('filterPhase').value;
+  const jb = document.getElementById('filterJob').value;
+  const els = [...document.querySelectorAll('#jobTableBody tr'), ...document.querySelectorAll('#jobDetailGrid .jd-card'), ...document.querySelectorAll('#actionList .action-item')];
+  els.forEach(el => {
+    const ms = st === 'all' || el.getAttribute('data-status') === st;
+    const mp = ph === 'all' || el.getAttribute('data-phase') === ph;
+    const mj = jb === 'all' || el.getAttribute('data-job') === jb;
+    el.style.display = (ms && mp && mj) ? '' : 'none';
+  });
+}
+
+let _sortDir = {};
+function sortTbl(col) {
+  const tbody = document.querySelector('#jobTableBody');
+  const rows  = Array.from(tbody.querySelectorAll('tr'));
+  _sortDir[col] = !_sortDir[col];
+  rows.sort((a,b) => {
+    const av = (a.cells[col]?.textContent||'').replace(/[$,%\s]/g,'').trim();
+    const bv = (b.cells[col]?.textContent||'').replace(/[$,%\s]/g,'').trim();
+    const an = parseFloat(av), bn = parseFloat(bv);
+    const cmp = isNaN(an) ? av.localeCompare(bv) : an - bn;
+    return _sortDir[col] ? cmp : -cmp;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+// ─────────────────────────────────────────────
+//  UTILS
+// ─────────────────────────────────────────────
+function setStatus(msg) { const el = document.getElementById('loadingStatus'); if(el) el.textContent = msg; }
+function showError(msg, detail) {
+  document.getElementById('loadingScreen').style.display = 'none';
+  const es = document.getElementById('errorScreen');
+  es.style.display = 'flex';
+  document.getElementById('errorMsg').textContent = msg;
+  document.getElementById('errorDetail').textContent = detail || '';
+}
+
+// ─────────────────────────────────────────────
+//  WIRE UP EVENTS & BOOT
+// ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('filterStatus').addEventListener('change', applyFilters);
+  document.getElementById('filterPhase').addEventListener('change',  applyFilters);
+  document.getElementById('filterJob').addEventListener('change',    applyFilters);
+  document.getElementById('clearFilters').addEventListener('click',  () => {
+    ['filterStatus','filterPhase','filterJob'].forEach(id => document.getElementById(id).value = 'all');
+    applyFilters();
+  });
+  loadDashboard();
+});
+</script>
+</body>
+</html>
