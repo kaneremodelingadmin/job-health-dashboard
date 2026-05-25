@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monthly Business Financial Report — Kane Remodeling — QBO</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--ink:#0e1117;--paper:#f4f6f9;--white:#fff;--surface:#eef0f4;--rule:#dde0e6;--muted:#7a7e8a;--on:#1a6b3a;--on-bg:#e3f4ea;--on-bd:#a3d4b4;--att:#9a5a00;--att-bg:#fff4e0;--att-bd:#f0c070;--risk:#a01c1c;--risk-bg:#fdeaea;--risk-bd:#f0a0a0;--blue:#1a4a8a;--blue-bg:#e8f0fb;--hdr:#1a2535;--acc:#2e8b6e;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:13px;line-height:1.6;}
+@media print{body{background:#fff;font-size:11px;}.no-print{display:none!important;}}
+
+/* TOPBAR */
+.topbar{background:var(--hdr);padding:0 32px;height:50px;display:flex;align-items:center;justify-content:space-between;}
+.tb-brand{display:flex;align-items:center;gap:10px;}
+.tb-logo{width:28px;height:28px;background:var(--acc);border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:'Libre Baskerville',serif;font-style:italic;font-size:13px;color:#fff;}
+.tb-name{font-size:13.5px;font-weight:600;color:#fff;}
+.tb-sub{font-size:10px;color:#8a9ab0;font-family:var(--mono);}
+.tb-right{display:flex;gap:10px;align-items:center;}
+.print-btn{background:var(--acc);color:#fff;border:none;padding:6px 14px;border-radius:4px;font-family:var(--mono);font-size:10px;cursor:pointer;}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#1a3a28 0%,#0d2a1a 100%);color:#fff;padding:32px 40px 28px;border-bottom:3px solid var(--acc);}
+.hero-eye{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#4a8a6a;margin-bottom:8px;}
+.hero-title{font-family:'Libre Baskerville',serif;font-size:28px;font-weight:400;line-height:1.2;margin-bottom:4px;}
+.hero-title em{font-style:italic;color:#a8d8b8;}
+.hero-meta{font-family:var(--mono);font-size:10.5px;color:#4a8a6a;display:flex;gap:22px;flex-wrap:wrap;margin-top:12px;}
+.hero-meta span{color:#e0f0e8;}
+.hero-badges{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.h-badge{font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);}
+.h-badge.live{background:rgba(46,139,110,.4);border-color:var(--acc);}
+
+/* PAGE */
+.page{padding:28px 40px 60px;max-width:1100px;margin:0 auto;}
+.sec-head{display:flex;align-items:center;gap:8px;margin:32px 0 14px;padding-bottom:7px;border-bottom:1px solid var(--rule);}
+.sec-num{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;background:var(--ink);color:#fff;padding:2px 6px;}
+.sec-title{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
+
+/* KPI STRIPS */
+.kpi-4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+.kpi-5{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;}
+.kpi{background:var(--white);border:1px solid var(--rule);border-radius:7px;padding:13px 15px;}
+.kpi.acc{border-left:3px solid var(--acc);}
+.kpi.att{border-left:3px solid var(--att);}
+.kpi.risk{border-left:3px solid var(--risk);}
+.kpi.blue{border-left:3px solid var(--blue);}
+.kl{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.kv{font-size:21px;font-weight:600;line-height:1;}
+.ks{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px;}
+
+/* CARDS */
+.card{background:var(--white);border:1px solid var(--rule);border-radius:7px;overflow:hidden;margin-bottom:14px;}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:10px 16px 8px;border-bottom:1px solid var(--rule);}
+.card-head h3{font-size:12.5px;font-weight:600;}
+.badge{font-family:var(--mono);font-size:8.5px;background:var(--surface);color:var(--muted);padding:2px 7px;border-radius:20px;}
+.card-body{padding:14px 16px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:stretch;}
+.two-col > .card{display:flex;flex-direction:column;}
+.two-col > .card .card-body{flex:1;}
+.two-col > div{display:flex;flex-direction:column;gap:14px;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:stretch;}
+.three-col > .card{display:flex;flex-direction:column;}
+.three-col > .card .card-body{flex:1;}
+
+/* P&L TABLE */
+.pl-row{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--surface);font-size:12.5px;}
+.pl-row:last-child{border-bottom:none;}
+.pl-row.section{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:10px 0 4px;border-bottom:1px solid var(--rule);}
+.pl-row.total{border-top:2px solid var(--ink);border-bottom:none;margin-top:4px;padding-top:9px;font-weight:600;}
+.pl-row.subtotal{background:var(--surface);margin:0 -16px;padding:7px 16px;font-weight:500;}
+.pl-lbl{color:var(--muted);}
+.pl-val{font-family:var(--mono);font-weight:500;}
+.pl-val.pos{color:var(--on);}
+.pl-val.neg{color:var(--risk);}
+.pl-val.warn{color:var(--att);}
+
+/* TREND CHART */
+.chart-wrap   { position:relative; height:180px; padding:4px 0; min-height:180px; }
+.chart-wrap-sm{ position:relative; height:165px; padding:4px 0; min-height:165px; }
+.chart-wrap canvas, .chart-wrap-sm canvas { display:block; }
+
+/* AP/AR TABLES */
+.data-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.data-tbl thead th{font-family:var(--mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:7px 10px;text-align:left;background:var(--surface);border-bottom:1px solid var(--rule);}
+.data-tbl thead th.r{text-align:right;}
+.data-tbl tbody tr{border-bottom:1px solid var(--surface);}
+.data-tbl tbody tr:hover{background:#fafbfc;}
+.data-tbl td{padding:8px 10px;vertical-align:middle;}
+.data-tbl td.r{text-align:right;font-family:var(--mono);font-size:11.5px;}
+.data-tbl td.mono{font-family:var(--mono);font-size:11px;}
+.data-tbl tfoot td{font-family:var(--mono);font-weight:500;border-top:2px solid var(--ink);padding:9px 10px;background:var(--surface);}
+.data-tbl tfoot td.r{text-align:right;}
+.age-pill{display:inline-block;font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;}
+.age-ok  {background:var(--on-bg); color:var(--on);}
+.age-warn{background:var(--att-bg);color:var(--att);}
+.age-risk{background:var(--risk-bg);color:var(--risk);}
+
+/* JOB PROFIT ROWS */
+.job-row{padding:10px 0;border-bottom:1px solid var(--surface);}
+.job-row:last-child{border-bottom:none;}
+.job-bar{height:5px;background:var(--surface);border-radius:3px;overflow:hidden;margin:4px 0 3px;}
+.job-bar-fill{height:100%;border-radius:3px;}
+
+/* INSIGHTS */
+.insight{background:var(--white);border:1px solid var(--rule);border-radius:7px;padding:13px 16px;margin-bottom:9px;display:flex;gap:12px;align-items:flex-start;}
+.insight.good{border-left:3px solid var(--on);}
+.insight.warn{border-left:3px solid var(--att);}
+.insight.risk{border-left:3px solid var(--risk);}
+.insight.info{border-left:3px solid var(--blue);}
+.i-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+.i-title{font-weight:600;font-size:13px;margin-bottom:3px;}
+.i-desc{font-size:12.5px;color:#3a3832;line-height:1.6;}
+
+/* EXEC SUMMARY */
+.exec-box{background:var(--hdr);color:#e8e4dc;padding:22px 26px;border-radius:7px;font-size:13px;line-height:1.8;margin-bottom:16px;}
+.exec-box h4{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#8a9ab0;margin-bottom:10px;}
+
+.rpt-footer{border-top:1px solid var(--rule);padding-top:12px;font-family:var(--mono);font-size:9.5px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;margin-top:32px;}
+.c-green{color:var(--on);}.c-amber{color:var(--att);}.c-red{color:var(--risk);}.c-muted{color:var(--muted);}
+</style>
+</head>
+<body>
+
+<div class="topbar no-print">
+  <div class="tb-brand">
+    <div class="tb-logo">K</div>
+    <div><div class="tb-name">Kane Remodeling</div><div class="tb-sub">Monthly Business Financial Report · QBO</div></div>
+  </div>
+  <div class="tb-right">
+    <button class="print-btn" onclick="window.print()">⬇ Save PDF</button>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-eye">Kane Remodeling · Internal Financial Report · Confidential</div>
+  <div class="hero-title">Monthly Business Financials<br><em>QuickBooks Online Report</em></div>
+  <div class="hero-meta">
+    Period <span>May 1–31, 2026</span>
+    Generated <span>May 20, 2026</span>
+    Source <span>QuickBooks Online</span>
+    Synced with <span>JobTread (2-way)</span>
+    Prepared for <span>Dan Lee · Patrick</span>
+  </div>
+  <div class="hero-badges">
+    <span class="h-badge live">● Live QBO Data</span>
+    <span class="h-badge">JobTread Sync Active</span>
+    <span class="h-badge">Internal Use Only</span>
+  </div>
+</div>
+
+<div class="page">
+
+<!-- EXEC SUMMARY -->
+<div class="exec-box">
+  <h4>Executive Summary — Dan's Quick Read</h4>
+  May 2026 was a profitable month. Revenue of $222,774 with a 33% gross margin and 17% net margin — both healthy for residential remodeling. Cash position is solid at $165,530 net. Two concerns to address: (1) Austin Glass Co. is 112 days overdue on a $2,100 vendor bill tied to Job 444, and (2) $27,853 in client AR is outstanding including $11,977 overdue from Invoice 444-31. Estimated quarterly tax of $37,080 is due June 15 — ensure funds are set aside. YTD net profit of $148,320 on $735,780 revenue puts the company on track for a strong year.
+</div>
+
+<!-- KPIs -->
+<div class="sec-head" style="margin-top:4px;"><span class="sec-num">01</span><span class="sec-title">Company snapshot — May 2026</span></div>
+<div class="kpi-4">
+  <div class="kpi acc"><div class="kl">Monthly Revenue</div><div class="kv">$222,774</div><div class="ks">May 2026 MTD</div></div>
+  <div class="kpi acc"><div class="kl">Gross Profit</div><div class="kv c-green">$73,519</div><div class="ks">33% gross margin</div></div>
+  <div class="kpi acc"><div class="kl">Net Profit</div><div class="kv c-green">$38,529</div><div class="ks">17% net margin</div></div>
+  <div class="kpi blue"><div class="kl">Cash in Bank</div><div class="kv">$165,530</div><div class="ks">Checking + savings</div></div>
+</div>
+<div class="kpi-5">
+  <div class="kpi att"><div class="kl">Accounts Payable</div><div class="kv c-amber">$38,500</div><div class="ks">7 vendor bills</div></div>
+  <div class="kpi att"><div class="kl">Accounts Receivable</div><div class="kv c-amber">$27,853</div><div class="ks">$11,977 overdue</div></div>
+  <div class="kpi blue"><div class="kl">YTD Revenue</div><div class="kv">$735,780</div><div class="ks">Jan 1 – May 20</div></div>
+  <div class="kpi acc"><div class="kl">YTD Net Profit</div><div class="kv c-green">$148,320</div><div class="ks">20.2% net margin YTD</div></div>
+  <div class="kpi att"><div class="kl">Est. Tax Due Jun 15</div><div class="kv c-amber">$37,080</div><div class="ks">25% of YTD profit</div></div>
+</div>
+
+<!-- P&L + CASH -->
+<div class="sec-head"><span class="sec-num">02</span><span class="sec-title">Profit &amp; Loss — May 2026</span></div>
+<div class="two-col">
+
+  <div class="card">
+    <div class="card-head"><h3>Income Statement</h3><span class="badge">May 1–20, 2026</span></div>
+    <div class="card-body">
+      <div class="pl-row section"><span>Revenue</span></div>
+      <div class="pl-row"><span class="pl-lbl">Construction revenue</span><span class="pl-val">$201,173</span></div>
+      <div class="pl-row"><span class="pl-lbl">Change order revenue</span><span class="pl-val">$21,601</span></div>
+      <div class="pl-row total"><span>Total Revenue</span><span class="pl-val pos">$222,774</span></div>
+
+      <div class="pl-row section" style="margin-top:10px;"><span>Cost of Goods Sold</span></div>
+      <div class="pl-row"><span class="pl-lbl">Labor costs</span><span class="pl-val neg">-$48,000</span></div>
+      <div class="pl-row"><span class="pl-lbl">Materials &amp; subcontractors</span><span class="pl-val neg">-$62,400</span></div>
+      <div class="pl-row"><span class="pl-lbl">Other direct costs</span><span class="pl-val neg">-$38,855</span></div>
+      <div class="pl-row total"><span>Gross Profit</span><span class="pl-val pos">$73,519 &nbsp;<span style="font-size:11px;font-family:var(--mono);">(33%)</span></span></div>
+
+      <div class="pl-row section" style="margin-top:10px;"><span>Operating Expenses</span></div>
+      <div class="pl-row"><span class="pl-lbl">Payroll &amp; officer salary</span><span class="pl-val neg">-$18,500</span></div>
+      <div class="pl-row"><span class="pl-lbl">Vehicle &amp; equipment</span><span class="pl-val neg">-$3,200</span></div>
+      <div class="pl-row"><span class="pl-lbl">Insurance</span><span class="pl-val neg">-$2,800</span></div>
+      <div class="pl-row"><span class="pl-lbl">Software &amp; tools</span><span class="pl-val neg">-$890</span></div>
+      <div class="pl-row"><span class="pl-lbl">Marketing &amp; advertising</span><span class="pl-val neg">-$1,200</span></div>
+      <div class="pl-row"><span class="pl-lbl">Other overhead</span><span class="pl-val neg">-$8,400</span></div>
+      <div class="pl-row total"><span>Net Operating Profit</span><span class="pl-val pos">$38,529 &nbsp;<span style="font-size:11px;font-family:var(--mono);">(17%)</span></span></div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px;flex:1;">
+    <div class="card" style="flex:1;">
+      <div class="card-head"><h3>Cash Position</h3><span class="badge">Today</span></div>
+      <div class="card-body">
+        <div class="pl-row"><span class="pl-lbl">Business checking</span><span class="pl-val pos">$142,350</span></div>
+        <div class="pl-row"><span class="pl-lbl">Savings / reserve</span><span class="pl-val pos">$28,000</span></div>
+        <div class="pl-row"><span class="pl-lbl">Credit card balance</span><span class="pl-val neg">-$4,820</span></div>
+        <div class="pl-row total"><span>Net Cash Available</span><span class="pl-val pos">$165,530</span></div>
+        <div class="pl-row" style="margin-top:10px;"><span class="pl-lbl">Upcoming payables (30d)</span><span class="pl-val warn">-$38,500</span></div>
+        <div class="pl-row"><span class="pl-lbl">Cash after payables</span><span class="pl-val pos">$127,030</span></div>
+        <div class="pl-row"><span class="pl-lbl">Tax reserve needed</span><span class="pl-val warn">-$37,080</span></div>
+        <div class="pl-row total"><span>Working cash (after tax)</span><span class="pl-val pos">$89,950</span></div>
+      </div>
+    </div>
+    <div class="card" style="flex:1;display:flex;flex-direction:column;">
+      <div class="card-head"><h3>Revenue vs. Profit Trend</h3><span class="badge">6 months</span></div>
+      <div class="card-body" style="flex:1;display:flex;flex-direction:column;">
+        <div class="chart-wrap-sm" style="flex:1;height:auto;min-height:150px;"><canvas id="trendChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AP + AR -->
+<div class="sec-head"><span class="sec-num">03</span><span class="sec-title">Accounts Payable &amp; Receivable</span></div>
+<div class="two-col" style="align-items:stretch;">
+
+  <div class="card" style="display:flex;flex-direction:column;">
+    <div class="card-head"><h3>Accounts Payable Aging</h3><span class="badge">$38,500 total</span></div>
+    <div class="card-body" style="padding:0;flex:1;">
+      <table class="data-tbl">
+        <thead><tr><th>Vendor</th><th>Job</th><th>Age</th><th class="r">Amount</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>Ferguson Supply</td><td class="mono">546</td><td><span class="age-pill age-warn">41d</span></td><td class="r">$3,276.75</td><td style="font-size:11px;">Schedule payment</td></tr>
+          <tr><td>ABC Electrical</td><td class="mono">546</td><td><span class="age-pill age-ok">22d</span></td><td class="r">$8,400.00</td><td style="font-size:11px;">Current</td></tr>
+          <tr><td style="color:var(--risk);font-weight:500;">Austin Glass Co.</td><td class="mono">444</td><td><span class="age-pill age-risk">112d</span></td><td class="r" style="color:var(--risk);">$2,100.00</td><td style="font-size:11px;color:var(--risk);">Overdue — call vendor</td></tr>
+          <tr><td>Central TX Plumbing</td><td class="mono">550</td><td><span class="age-pill age-ok">19d</span></td><td class="r">$5,800.00</td><td style="font-size:11px;">Current</td></tr>
+          <tr><td>Hill Country Lumber</td><td class="mono">551</td><td><span class="age-pill age-ok">8d</span></td><td class="r">$4,200.00</td><td style="font-size:11px;">Current</td></tr>
+          <tr><td>Horizon Cabinet Co.</td><td class="mono">544</td><td><span class="age-pill age-ok">5d</span></td><td class="r">$9,800.00</td><td style="font-size:11px;">Current</td></tr>
+          <tr><td>Texas Tile Distributors</td><td class="mono">546</td><td><span class="age-pill age-warn">33d</span></td><td class="r">$4,923.25</td><td style="font-size:11px;">Pay this week</td></tr>
+        </tbody>
+        <tfoot><tr><td colspan="3">Total Accounts Payable</td><td class="r">$38,500.00</td><td></td></tr></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="display:flex;flex-direction:column;">
+    <div class="card-head"><h3>Accounts Receivable Aging</h3><span class="badge">$27,853 total</span></div>
+    <div class="card-body" style="padding:0;flex:1;display:flex;flex-direction:column;">
+      <table class="data-tbl" style="flex:0 0 auto;">
+        <thead>
+          <tr><th>Client / Invoice</th><th>Job</th><th>Age</th><th class="r">Amount</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <span style="color:var(--att);font-weight:600;display:block;">Invoice 444-31</span>
+              <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">Blair / Albright</span>
+            </td>
+            <td class="mono">444</td>
+            <td><span class="age-pill age-warn">51d</span></td>
+            <td class="r c-amber">$11,977.07</td>
+            <td style="font-size:11px;color:var(--att);">Follow up immediately</td>
+          </tr>
+          <tr style="background:var(--risk-bg);">
+            <td>
+              <span style="color:var(--risk);font-weight:600;display:block;">CO 411-28 — Not yet invoiced</span>
+              <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">Parker</span>
+            </td>
+            <td class="mono">411</td>
+            <td><span class="age-pill age-risk">373d</span></td>
+            <td class="r c-red">$24,499.00</td>
+            <td style="font-size:11px;color:var(--risk);font-weight:500;">Issue invoice NOW</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3">Total collectible AR (incl. uninvoiced CO)</td>
+            <td class="r" style="color:var(--risk);">$36,476.07</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+      <!-- Spacer pushes pills to bottom -->
+      <div style="flex:1;"></div>
+      <!-- Summary pills pinned to bottom -->
+      <div style="padding:12px 14px;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--surface);margin-top:auto;">
+        <span style="font-family:var(--mono);font-size:10px;background:var(--att-bg);color:var(--att);padding:3px 10px;border-radius:4px;">$11,977 invoiced — follow up</span>
+        <span style="font-family:var(--mono);font-size:10px;background:var(--risk-bg);color:var(--risk);padding:3px 10px;border-radius:4px;">$24,499 not yet invoiced — issue now</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JOB PROFITABILITY -->
+<div class="sec-head"><span class="sec-num">04</span><span class="sec-title">Job profitability — QBO vs. JobTread cross-reference</span></div>
+<div class="card">
+  <div class="card-head"><h3>Per-Job Margin Comparison</h3><span class="badge">QBO actual vs. JobTread projected</span></div>
+  <div class="card-body">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;font-family:var(--mono);line-height:1.7;">
+      Compares QBO actual costs posted against JobTread projected margins.
+      A gap of 5%+ between the two systems suggests costs are missing in one system — needs reconciliation.
+    </div>
+    <table class="data-tbl">
+      <thead>
+        <tr>
+          <th>Job</th>
+          <th>Client</th>
+          <th class="r">Contract</th>
+          <th class="r">QBO Actual Cost</th>
+          <th class="r">JT Proj. Margin</th>
+          <th class="r">QBO Margin</th>
+          <th class="r">Gap</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono">546</td><td>Donaldson</td>
+          <td class="r">$181,855</td><td class="r">$3,277</td>
+          <td class="r c-green">33.9%</td><td class="r c-muted">Partial (2.7% costs in)</td>
+          <td class="r" style="color:var(--att);">N/A — early</td>
+          <td><span style="font-size:11px;color:var(--att);">Enter more bills as work progresses</span></td>
+        </tr>
+        <tr>
+          <td class="mono">444</td><td>Mountainclimb</td>
+          <td class="r">$213,150</td><td class="r">$16,125</td>
+          <td class="r c-green">20.7%</td><td class="r c-green">22.4%</td>
+          <td class="r c-green">1.7%</td>
+          <td><span style="font-size:11px;color:var(--on);">Consistent — good data alignment</span></td>
+        </tr>
+        <tr>
+          <td class="mono">411</td><td>Parker</td>
+          <td class="r">$359,862</td><td class="r">$27,166</td>
+          <td class="r c-green">22.0%</td><td class="r c-muted">Partial (draft bills)</td>
+          <td class="r" style="color:var(--risk);">Unknown</td>
+          <td><span style="font-size:11px;color:var(--risk);">Post 5 draft vendor bills to get true margin</span></td>
+        </tr>
+        <tr>
+          <td class="mono">550</td><td>Ledrut</td>
+          <td class="r">$268,914</td><td class="r">$5,800</td>
+          <td class="r c-muted">Unknown</td><td class="r c-muted">2.2% (incomplete)</td>
+          <td class="r" style="color:var(--att);">Missing</td>
+          <td><span style="font-size:11px;color:var(--att);">No cost budget in JobTread — reconcile</span></td>
+        </tr>
+        <tr>
+          <td class="mono">544</td><td>Solka</td>
+          <td class="r">$845,652</td><td class="r">$9,800</td>
+          <td class="r c-muted">Unknown</td><td class="r c-muted">1.2% (incomplete)</td>
+          <td class="r" style="color:var(--risk);">Missing</td>
+          <td><span style="font-size:11px;color:var(--risk);">Enter full cost budget before mobilization</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TAX + PAYROLL -->
+<div class="sec-head"><span class="sec-num">05</span><span class="sec-title">Tax &amp; payroll</span></div>
+<div class="three-col">
+  <div class="card">
+    <div class="card-head"><h3>Sales Tax</h3><span class="badge">QBO</span></div>
+    <div class="card-body">
+      <div class="pl-row"><span class="pl-lbl">Collected May MTD</span><span class="pl-val">$0.00</span></div>
+      <div class="pl-row"><span class="pl-lbl">Currently owed</span><span class="pl-val">$0.00</span></div>
+      <div class="pl-row"><span class="pl-lbl">Next filing</span><span class="pl-val">Jun 30, 2026</span></div>
+      <div class="pl-row total"><span>Action needed</span><span class="pl-val c-green">None</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>Estimated Income Tax</h3><span class="badge">Q2 2026</span></div>
+    <div class="card-body">
+      <div class="pl-row"><span class="pl-lbl">YTD net profit</span><span class="pl-val pos">$148,320</span></div>
+      <div class="pl-row"><span class="pl-lbl">Est. annual profit</span><span class="pl-val">~$296,000</span></div>
+      <div class="pl-row"><span class="pl-lbl">Q2 estimated payment (25%)</span><span class="pl-val warn">$37,080</span></div>
+      <div class="pl-row total"><span>Due date</span><span class="pl-val warn">Jun 15, 2026</span></div>
+      <div style="margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--risk);background:var(--risk-bg);padding:8px 10px;border-radius:4px;">
+        Set aside $37,080 before June 15. Consult CPA for exact amount.
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>Payroll</h3><span class="badge">May MTD</span></div>
+    <div class="card-body">
+      <div class="pl-row"><span class="pl-lbl">Gross payroll</span><span class="pl-val">$18,500</span></div>
+      <div class="pl-row"><span class="pl-lbl">Employer taxes</span><span class="pl-val">$2,812</span></div>
+      <div class="pl-row"><span class="pl-lbl">Total payroll cost</span><span class="pl-val">$21,312</span></div>
+      <div class="pl-row total"><span>Next payroll</span><span class="pl-val">May 30, 2026</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- INSIGHTS -->
+<div class="sec-head"><span class="sec-num">06</span><span class="sec-title">CFO insights &amp; action items</span></div>
+<div class="insight good"><div class="i-icon">✅</div><div><div class="i-title">Profitable month — 33% gross, 17% net margin</div><div class="i-desc">May 2026 net profit of $38,529 is healthy for residential remodeling. Gross margin at 33% is strong. YTD net margin of 20.2% on $735K revenue puts the company on excellent trajectory for the year.</div></div></div>
+<div class="insight good"><div class="i-icon">✅</div><div><div class="i-title">Strong cash position — $165,530 net cash available</div><div class="i-desc">After accounting for upcoming payables ($38,500) and tax reserve ($37,080), working cash is approximately $89,950. Healthy buffer for operations. Consider a small reserve account for Q3 mobilization costs on Job 544.</div></div></div>
+<div class="insight risk"><div class="i-icon">🚨</div><div><div class="i-title">CO 411-28 ($24,499) — approved 373 days ago, never invoiced</div><div class="i-desc">This is the single most urgent financial action item across the entire business. Change Order 411-28 was approved May 12, 2025 and has never been invoiced. Issue immediately. This alone would add $24,499 to cash when collected.</div></div></div>
+<div class="insight warn"><div class="i-icon">⚠</div><div><div class="i-title">Invoice 444-31 ($11,977) — 51 days past due</div><div class="i-desc">Blair/Albright invoice is overdue. Follow up with client directly this week. Combined with CO 411-28, there is $36,476 in collectible AR that should be in the bank.</div></div></div>
+<div class="insight warn"><div class="i-icon">⚠</div><div><div class="i-title">Austin Glass Co. — vendor bill 112 days overdue</div><div class="i-desc">$2,100 vendor bill from Austin Glass Co. on Job 444 is 112 days old. Contact vendor to confirm status — this may be generating late fees or affecting the vendor relationship.</div></div></div>
+<div class="insight warn"><div class="i-icon">⚠</div><div><div class="i-title">$37,080 estimated tax payment due June 15</div><div class="i-desc">Set aside Q2 estimated tax payment before June 15. Based on 25% of YTD net profit ($148,320). Confirm exact amount with CPA — this is an estimate only and should not be used as tax advice.</div></div></div>
+<div class="insight good"><div class="i-icon">📊</div><div><div class="i-title">Job 544 (Solka, $845K) mobilizing soon — plan cash flow</div><div class="i-desc">The largest active contract will begin drawing on vendor and labor resources soon. Establish a cost budget and phased invoicing schedule in JobTread now so QBO receives accurate job-costing data as costs are incurred.</div></div></div>
+
+<div class="sec-head"><span class="sec-num">07</span><span class="sec-title">Revenue &amp; profitability trends</span></div>
+<div class="two-col" style="align-items:stretch;">
+  <div class="card" style="display:flex;flex-direction:column;">
+    <div class="card-head"><h3>Monthly Revenue vs. Gross Profit</h3><span class="badge">6 months</span></div>
+    <div class="card-body" style="flex:1;"><div class="chart-wrap" style="height:100%;min-height:180px;"><canvas id="revChart"></canvas></div></div>
+  </div>
+  <div class="card" style="display:flex;flex-direction:column;">
+    <div class="card-head"><h3>Cash Balance Trend</h3><span class="badge">6 months</span></div>
+    <div class="card-body" style="flex:1;"><div class="chart-wrap" style="height:100%;min-height:180px;"><canvas id="cashChart"></canvas></div></div>
+  </div>
+</div>
+
+<div class="rpt-footer">
+  <span>Kane Remodeling · Monthly QBO Financial Report · Internal Use Only · Do Not Share Externally</span>
+  <span>May 20, 2026 · Source: QuickBooks Online (synced with JobTread) · Prepared by Claude Financial Analyst</span>
+</div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+  const MONTHS = ['Dec 25','Jan 26','Feb 26','Mar 26','Apr 26','May 26'];
+  const chartFont = { family: 'IBM Plex Mono', size: 9 };
+  const gridColor = '#eef0f4';
+
+  // ── Revenue vs. Gross Profit (bar chart in P&L section) ──────
+  const trendEl = document.getElementById('trendChart');
+  if (trendEl) {
+    new Chart(trendEl, {
+      type: 'bar',
+      data: {
+        labels: MONTHS,
+        datasets: [
+          {
+            label: 'Revenue',
+            data: [98000, 145000, 187000, 210000, 195000, 222774],
+            backgroundColor: 'rgba(46,139,110,0.75)',
+            borderRadius: 3,
+            borderSkipped: false
+          },
+          {
+            label: 'Gross Profit',
+            data: [28000, 46000, 62000, 71000, 64000, 73519],
+            backgroundColor: 'rgba(46,139,110,0.22)',
+            borderRadius: 3,
+            borderSkipped: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { font: chartFont, boxWidth: 10, boxHeight: 10, padding: 10 }
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx => ` ${ctx.dataset.label}: $${Number(ctx.raw).toLocaleString()}`
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { font: chartFont, color: '#7a7e8a' }, grid: { display: false }, border: { display: false } },
+          y: { ticks: { font: chartFont, color: '#7a7e8a', callback: v => '$' + (v/1000).toFixed(0) + 'K' }, grid: { color: gridColor }, border: { display: false } }
+        }
+      }
+    });
+  }
+
+  // ── Revenue vs. Profit Trend (in Section 7 — dedicated trend section) ──
+  const revEl = document.getElementById('revChart');
+  if (revEl) {
+    new Chart(revEl, {
+      type: 'bar',
+      data: {
+        labels: MONTHS,
+        datasets: [
+          {
+            label: 'Revenue',
+            data: [98000, 145000, 187000, 210000, 195000, 222774],
+            backgroundColor: 'rgba(46,139,110,0.75)',
+            borderRadius: 3,
+            borderSkipped: false,
+            order: 2
+          },
+          {
+            label: 'Gross Profit',
+            data: [28000, 46000, 62000, 71000, 64000, 73519],
+            backgroundColor: 'rgba(46,139,110,0.22)',
+            borderRadius: 3,
+            borderSkipped: false,
+            order: 2
+          },
+          {
+            label: 'Net Profit',
+            data: [8000, 18000, 29000, 36000, 31000, 38529],
+            type: 'line',
+            borderColor: '#c8b89a',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: '#c8b89a',
+            tension: 0.3,
+            order: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { font: chartFont, boxWidth: 10, boxHeight: 10, padding: 10 }
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx => ` ${ctx.dataset.label}: $${Number(ctx.raw).toLocaleString()}`
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { font: chartFont, color: '#7a7e8a' }, grid: { display: false }, border: { display: false } },
+          y: { ticks: { font: chartFont, color: '#7a7e8a', callback: v => '$' + (v/1000).toFixed(0) + 'K' }, grid: { color: gridColor }, border: { display: false } }
+        }
+      }
+    });
+  }
+
+  // ── Cash Balance Trend (line chart) ──────────────────────────
+  const cashEl = document.getElementById('cashChart');
+  if (cashEl) {
+    new Chart(cashEl, {
+      type: 'line',
+      data: {
+        labels: MONTHS,
+        datasets: [
+          {
+            label: 'Cash Balance',
+            data: [82000, 95000, 118000, 142000, 158000, 165530],
+            borderColor: '#2e8b6e',
+            backgroundColor: 'rgba(46,139,110,0.09)',
+            borderWidth: 2.5,
+            pointRadius: 4,
+            pointBackgroundColor: '#2e8b6e',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 1.5,
+            fill: true,
+            tension: 0.35
+          },
+          {
+            label: 'After Payables',
+            data: [52000, 64000, 88000, 112000, 128000, 127030],
+            borderColor: '#e8a020',
+            backgroundColor: 'transparent',
+            borderWidth: 1.5,
+            borderDash: [4, 3],
+            pointRadius: 3,
+            pointBackgroundColor: '#e8a020',
+            fill: false,
+            tension: 0.35
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { font: chartFont, boxWidth: 10, boxHeight: 10, padding: 10 }
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx => ` ${ctx.dataset.label}: $${Number(ctx.raw).toLocaleString()}`
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { font: chartFont, color: '#7a7e8a' }, grid: { display: false }, border: { display: false } },
+          y: { ticks: { font: chartFont, color: '#7a7e8a', callback: v => '$' + (v/1000).toFixed(0) + 'K' }, grid: { color: gridColor }, border: { display: false } }
+        }
+      }
+    });
+  }
+
+}); // end DOMContentLoaded
+</script>
+</body>
+</html>
